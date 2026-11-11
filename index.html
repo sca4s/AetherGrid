@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>AetherGrid — 3D Tactical Alignment</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23d8cff8' stroke='%232d234e' stroke-width='4'/%3E%3Cpath d='M22 12v40M42 12v40M12 22h40M12 42h40' stroke='%231f1938' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='22' cy='22' r='5' fill='%23ff758f'/%3E%3Ccircle cx='42' cy='42' r='5' fill='%2338b6ff'/%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=5" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -183,16 +183,21 @@
           <div class="modal-header-row">
             <div>
               <h2>Step 2 — Biome, Striker & Pastel Studio</h2>
-              <p class="sub-note">Choose individual striker shapes, high-contrast pastel swatches, and 3D worlds.</p>
+              <p class="sub-note">Choose from 13 realistic 3D worlds, custom striker shapes, and high-contrast pastel swatches.</p>
             </div>
             <button id="btn-toggle-preview-peek" class="ui-btn accent-btn" type="button">Inspect 360° World</button>
           </div>
 
           <div class="form-stack" id="customize-form-body">
             <div class="control-group">
-              <label>Realistic 3D Background Biome</label>
-              <div class="segmented-grid-4" id="biome-select">
-                <button class="seg-btn active" data-biome="gothic_balcony" type="button">Gothic Balcony</button>
+              <label>Realistic 3D Background Biome (13 Worlds)</label>
+              <div class="segmented-grid-biomes" id="biome-select">
+                <button class="seg-btn active" data-biome="royal" type="button">Royal Sanctum</button>
+                <button class="seg-btn" data-biome="cyberpunk_drift" type="button">Cyberpunk Drift</button>
+                <button class="seg-btn" data-biome="angelic" type="button">Angelic Cloud</button>
+                <button class="seg-btn" data-biome="lagoon" type="button">Pastel Lagoon</button>
+                <button class="seg-btn" data-biome="cafe" type="button">Lo-Fi Cafe</button>
+                <button class="seg-btn" data-biome="gothic_balcony" type="button">Gothic Balcony</button>
                 <button class="seg-btn" data-biome="gothic_castle" type="button">Gothic Castle</button>
                 <button class="seg-btn" data-biome="forest" type="button">Enchanted Forest</button>
                 <button class="seg-btn" data-biome="cyberpunk" type="button">Cyberpunk Terrace</button>
@@ -386,15 +391,20 @@
 
       <div class="form-stack">
         <div class="control-group">
-          <label>Live Biome Background Switch</label>
-          <div class="segmented-grid-4" id="pause-biome-select">
-            <button class="seg-btn active" data-biome="gothic_balcony" type="button">Gothic Balcony</button>
+          <label>Live Biome Background Switch (13 Worlds)</label>
+          <div class="segmented-grid-biomes" id="pause-biome-select">
+            <button class="seg-btn active" data-biome="royal" type="button">Royal Sanctum</button>
+            <button class="seg-btn" data-biome="cyberpunk_drift" type="button">Cyberpunk Drift</button>
+            <button class="seg-btn" data-biome="angelic" type="button">Angelic Cloud</button>
+            <button class="seg-btn" data-biome="lagoon" type="button">Pastel Lagoon</button>
+            <button class="seg-btn" data-biome="cafe" type="button">Lo-Fi Cafe</button>
+            <button class="seg-btn" data-biome="gothic_balcony" type="button">Gothic Balcony</button>
             <button class="seg-btn" data-biome="gothic_castle" type="button">Gothic Castle</button>
-            <button class="seg-btn" data-biome="forest" type="button">Forest</button>
-            <button class="seg-btn" data-biome="cyberpunk" type="button">Cyberpunk</button>
-            <button class="seg-btn" data-biome="desert" type="button">Desert</button>
-            <button class="seg-btn" data-biome="underwater" type="button">Underwater</button>
-            <button class="seg-btn" data-biome="meadows" type="button">Meadows</button>
+            <button class="seg-btn" data-biome="forest" type="button">Enchanted Forest</button>
+            <button class="seg-btn" data-biome="cyberpunk" type="button">Cyberpunk Terrace</button>
+            <button class="seg-btn" data-biome="desert" type="button">Sandstone Desert</button>
+            <button class="seg-btn" data-biome="underwater" type="button">Abyssal Reef</button>
+            <button class="seg-btn" data-biome="meadows" type="button">Alpine Meadows</button>
             <button class="seg-btn" data-biome="paper" type="button">Sketch Paper</button>
           </div>
         </div>
@@ -477,6 +487,6 @@
     </div>
   </section>
 
-  <script src="main.js?v=4"></script>
+  <script src="main.js?v=5"></script>
 </body>
 </html>

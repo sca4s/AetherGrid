@@ -1,14 +1,14 @@
 :root {
   /* Light Theme — Strict Pure Black Text (#000000) & Solid Frosted Pastel Glass (Zero Gradients) */
-  --bg-page: #ede7fb;
+  --bg-page: #dcd3f2;
   --ui-bg: rgba(252, 250, 255, 0.88);
   --ui-bg-solid: #ffffff;
   --ui-border: rgba(30, 20, 60, 0.26);
   --text-main: #000000;
   --accent-main: #b7a6ff;
   --accent-soft: #e2dafc;
-  --p1-default: #ff758f;
-  --p2-default: #38b6ff;
+  --p1-default: #ff5c8a;
+  --p2-default: #2ec4b6;
   --shadow-soft: 0 10px 28px rgba(25, 18, 50, 0.15);
 
   /* Responsive Screen-Proportional Sizing Tokens */
@@ -24,7 +24,7 @@
 
 html[data-theme="dark"] {
   /* Dark Theme — Strict Pure White Text (#ffffff) & Solid Frosted Night Glass (Zero Gradients) */
-  --bg-page: #151224;
+  --bg-page: #151126;
   --ui-bg: rgba(28, 24, 46, 0.88);
   --ui-bg-solid: #25203b;
   --ui-border: rgba(235, 228, 255, 0.28);
@@ -60,6 +60,7 @@ html, body {
   height: 100%;
   z-index: 1;
   display: block;
+  background-color: var(--bg-page);
 }
 
 /* ==========================================================================

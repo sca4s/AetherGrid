@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Aethergrid — 3D Tactical Alignment</title>
+  <!-- Custom SVG Brand Icon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23d8cff8'/%3E%3Cpath d='M22 12v40M42 12v40M12 22h40M12 42h40' stroke='%2343386b' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='22' cy='22' r='5' fill='%23ff8da1'/%3E%3Ccircle cx='42' cy='42' r='5' fill='%2370c1b3'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <!-- Full-Screen Blurred Upper-Left Plague Theme Transition Overlay -->
+  <div id="plague-overlay" aria-hidden="true"></div>
+
+  <!-- 3D WebGL Viewport (Always visible, 360-degree interactive) -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- Global Top Utility Bar (Equidistant, Non-overlapping) -->
+  <header id="global-topbar" class="equidistant-bar">
+    <div class="brand-pill ui-surface">
+      <svg class="brand-icon" viewBox="0 0 64 64" aria-hidden="true">
+        <rect width="64" height="64" rx="16" fill="var(--accent-soft)" />
+        <path d="M22 12v40M42 12v40M12 22h40M12 42h40" stroke="var(--text-main)" stroke-width="5" stroke-linecap="round" />
+        <circle cx="22" cy="22" r="6" fill="var(--p1-default)" />
+        <circle cx="42" cy="42" r="6" fill="var(--p2-default)" />
+      </svg>
+      <span class="brand-title">Aethergrid</span>
+    </div>
+
+    <div id="turn-banner" class="turn-pill ui-surface hidden">
+      <span id="turn-dot" class="turn-dot"></span>
+      <span id="turn-text">Player 1's Turn</span>
+    </div>
+
+    <div class="top-actions equidistant-row">
+      <button id="btn-theme-toggle" class="ui-btn ui-surface" title="Switch Light / Dark Theme">
+        <span id="theme-label">Dark Mode</span>
+      </button>
+      <button id="btn-unhide-all" class="ui-btn ui-surface accent-btn hidden">
+        Unhide All UI
+      </button>
+      <button id="btn-pause-open" class="ui-btn ui-surface hidden">
+        Pause / Studio
+      </button>
+    </div>
+  </header>
+
+  <!-- =================================================================== -->
+  <!-- INITIATION SCREEN 1: DEVICE AUTO-DETECTION & SELECTION              -->
+  <!-- =================================================================== -->
+  <section id="screen-device" class="init-screen active">
+    <div class="init-modal ui-surface">
+      <div class="modal-header">
+        <h1>Welcome to Aethergrid</h1>
+        <p id="device-autodetect-msg" class="sub-note">Detecting hardware profile...</p>
+      </div>
+
+      <div class="device-grid">
+        <button class="device-card ui-surface selected" data-device="desktop" id="card-desktop">
+          <div class="device-badge">Keyboard + Mouse</div>
+          <h2>Desktop Workstation</h2>
+          <p>Precision cursor raycasting, W/S sky acceleration keys, C camera hotkeys, and Up-Arrow bird jump.</p>
+        </button>
+
+        <button class="device-card ui-surface" data-device="touch" id="card-touch">
+          <div class="device-badge">Mobile / Tablet / Handheld Hybrid</div>
+          <h2>Integrated Touch Unit</h2>
+          <p>Unified touch-orbit controls with dedicated on-screen action dock for camera POV, time speed, and bird jump.</p>
+        </button>
+      </div>
+
+      <div class="saved-session-bar hidden" id="saved-session-bar">
+        <span>Saved match in progress detected!</span>
+        <button id="btn-resume-saved" class="ui-btn accent-btn">Resume Saved Match</button>
+      </div>
+
+      <div class="modal-footer equidistant-row">
+        <div class="records-mini">
+          <span>Highest Score: <strong id="init-high-score">0</strong></span>
+          <span>Longest Survival / Best Time: <strong id="init-best-time">00:00</strong></span>
+        </div>
+        <button id="btn-to-screen-2" class="ui-btn primary-btn">Continue to Customization</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================================================================== -->
+  <!-- INITIATION SCREEN 2: STUDIO CUSTOMIZATION & 360° LIVE PREVIEW       -->
+  <!-- =================================================================== -->
+  <section id="screen-customize" class="init-screen">
+    <div class="studio-layout">
+      <!-- Left Customization Panel -->
+      <div class="studio-panel ui-surface">
+        <h2>Match & Mode Setup</h2>
+
+        <div class="control-group">
+          <label>Opponent & Match Format</label>
+          <div class="segmented-row" id="mode-select">
+            <button class="seg-btn active" data-mode="ai">Automated (AI)</button>
+            <button class="seg-btn" data-mode="pvp">2 Player</button>
+            <button class="seg-btn" data-mode="ai-duel">AI Duel (15 Rds)</button>
+            <button class="seg-btn" data-mode="pvp-duel">2P Duel (3 Rds)</button>
+          </div>
+        </div>
+
+        <div class="control-group" id="player-names-group">
+          <label>Contender Names</label>
+          <div class="equidistant-row">
+            <input type="text" id="input-p1-name" class="ui-input" value="Astra" maxlength="14" placeholder="Player 1 Name" />
+            <input type="text" id="input-p2-name" class="ui-input" value="Aether AI" maxlength="14" placeholder="Player 2 / AI" />
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Rule Variant</label>
+          <div class="segmented-row" id="rule-select">
+            <button class="seg-btn active" data-rule="classic">Standard Alignment</button>
+            <button class="seg-btn" data-rule="threepower">Three Power Max Mode</button>
+          </div>
+          <small class="hint-text">Three Power Max: Max 3 active strikes per player. For your 4th strike, select 1 of your existing 3 strikes to relocate.</small>
+        </div>
+
+        <div class="control-group">
+          <label>Grid Matrix (Boxes = Strikes in a Row to Win)</label>
+          <div class="segmented-row" id="grid-select">
+            <button class="seg-btn active" data-grid="3">3×3 (Need 3)</button>
+            <button class="seg-btn" data-grid="4">4×4 (Need 4)</button>
+            <button class="seg-btn" data-grid="5">5×5 (Need 5)</button>
+            <button class="seg-btn" data-grid="6">6×6 (Need 6)</button>
+          </div>
+        </div>
+
+        <div class="control-group" id="ai-diff-group">
+          <label>Automated AI Tier</label>
+          <div class="segmented-row" id="diff-select">
+            <button class="seg-btn" data-diff="easy">Easy</button>
+            <button class="seg-btn active" data-diff="medium">Medium</button>
+            <button class="seg-btn" data-diff="hard">Hard</button>
+            <button class="seg-btn" data-diff="hardcore">Hardcore</button>
+            <button class="seg-btn" data-diff="impossible">Impossible</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Clear 360° Preview Viewport Frame -->
+      <div class="preview-center-frame">
+        <div class="preview-pill ui-surface">
+          <span>360° Live Board Preview — Drag anywhere on board to inspect</span>
+        </div>
+        <div class="studio-bottom-bar ui-surface equidistant-row">
+          <button id="btn-back-screen-1" class="ui-btn">Back to Device</button>
+          <button id="btn-open-stats-init" class="ui-btn">Leaderboard & Graph</button>
+          <button id="btn-deploy-match" class="ui-btn primary-btn">Deploy to Aethergrid</button>
+        </div>
+      </div>
+
+      <!-- Right Customization Panel -->
+      <div class="studio-panel ui-surface">
+        <h2>Biome, Sky & Strikers</h2>
+
+        <div class="control-group">
+          <label>World Biome</label>
+          <div class="segmented-grid" id="biome-select">
+            <button class="seg-btn active" data-biome="royal">Royal Sanctum</button>
+            <button class="seg-btn" data-biome="cyberpunk">Cyberpunk Drift</button>
+            <button class="seg-btn" data-biome="angelic">Angelic Cloud</button>
+            <button class="seg-btn" data-biome="beach">Pastel Lagoon</button>
+            <button class="seg-btn" data-biome="cafe">Lo-Fi Cafe</button>
+            <button class="seg-btn" data-biome="paper">Sketch Paper (2 Pens)</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Striker Geometry (Automated & 2P)</label>
+          <div class="segmented-row" id="shape-select">
+            <button class="seg-btn active" data-shape="xo">Classic X / O</button>
+            <button class="seg-btn" data-shape="poly">Crystal & Torus</button>
+            <button class="seg-btn" data-shape="crown">Star & Pyramid</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Matte Pastel Colors (P1 / P2 / Table)</label>
+          <div class="color-picker-row">
+            <label class="color-chip">P1 <input type="color" id="color-p1" value="#ff8da1" /></label>
+            <label class="color-chip">P2 <input type="color" id="color-p2" value="#6bcBbd" /></label>
+            <label class="color-chip">Table <input type="color" id="color-board" value="#dcd3f8" /></label>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Sky Cycle & Initial Phase</label>
+          <div class="segmented-row" id="sky-mode-select">
+            <button class="seg-btn active" data-skymode="dynamic">Dynamic Cycle</button>
+            <button class="seg-btn" data-skymode="day">Fixed Day</button>
+            <button class="seg-btn" data-skymode="night">Fixed Night</button>
+          </div>
+          <div class="segmented-row top-gap" id="sky-start-select">
+            <button class="seg-btn active" data-skystart="day">Start at Day</button>
+            <button class="seg-btn" data-skystart="night">Start at Night</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================================================================== -->
+  <!-- IN-GAME HUD (PERIPHERAL EQUIDISTANT COLUMNS WITH SLIDE-HIDE)        -->
+  <!-- =================================================================== -->
+  <main id="hud-layer" class="hud-layer hidden">
+    <!-- Left Column: Collapsible Cards (Lower card slides up when upper hides) -->
+    <aside class="hud-column left-column" id="left-hud-col">
+      <div class="hud-card ui-surface" data-card-id="score-card">
+        <div class="card-head">
+          <h3>Match Telemetry</h3>
+          <button class="card-hide-btn" title="Slide out panel">×</button>
+        </div>
+        <div class="telemetry-grid">
+          <div class="stat-box">
+            <span id="hud-p1-name">Player 1</span>
+            <strong id="hud-p1-score">0</strong>
+            <small id="hud-p1-marks">Marks: 0</small>
+          </div>
+          <div class="stat-box">
+            <span id="hud-p2-name">Player 2</span>
+            <strong id="hud-p2-score">0</strong>
+            <small id="hud-p2-marks">Marks: 0</small>
+          </div>
+        </div>
+        <div class="duel-progress-box" id="duel-banner">
+          Mode: <strong id="hud-mode-label">Standard</strong>
+        </div>
+      </div>
+
+      <div class="hud-card ui-surface" data-card-id="clock-card">
+        <div class="card-head">
+          <h3>Chronometer & Event</h3>
+          <button class="card-hide-btn" title="Slide out panel">×</button>
+        </div>
+        <div class="telemetry-list">
+          <div>Elapsed Time: <strong id="hud-timer">00:00</strong></div>
+          <div>High Score: <strong id="hud-highscore">0</strong></div>
+          <div>Best Time: <strong id="hud-besttime">00:00</strong></div>
+          <div>Arena Attack: <strong id="hud-attack-name">Calm</strong></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right Column: Collapsible Cards -->
+    <aside class="hud-column right-column" id="right-hud-col">
+      <div class="hud-card ui-surface" data-card-id="env-card">
+        <div class="card-head">
+          <h3>Celestial & Camera</h3>
+          <button class="card-hide-btn" title="Slide out panel">×</button>
+        </div>
+        <div class="telemetry-list">
+          <div>Sky Phase: <strong id="hud-sky-phase">Daylight</strong></div>
+          <div>Cycle Speed: <strong id="hud-sky-speed">1.0x</strong></div>
+          <div>Camera POV: <strong id="hud-cam-mode">Orbit 360°</strong></div>
+        </div>
+        <div class="equidistant-row top-gap">
+          <button id="btn-hud-reset-round" class="ui-btn small-btn">Reset Board</button>
+          <button id="btn-hud-stats" class="ui-btn small-btn">Graph & Ranks</button>
+        </div>
+      </div>
+
+      <div class="hud-card ui-surface" data-card-id="controls-card">
+        <div class="card-head">
+          <h3>Interactive Controls</h3>
+          <button class="card-hide-btn" title="Slide out panel">×</button>
+        </div>
+        <div class="controls-legend" id="controls-legend-text">
+          <p><kbd>W</kbd> / <kbd>S</kbd> Accelerate / Decelerate Sky</p>
+          <p><kbd>↑</kbd> Make Autonomous Bird Jump</p>
+          <p><kbd>C</kbd> Switch Camera POV</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Bottom Device Action Dock (Always shown on Touch Hybrid, optional on Desktop) -->
+    <footer id="device-action-dock" class="bottom-dock ui-surface">
+      <button id="btn-dock-cam" class="ui-btn small-btn">Cam POV (C)</button>
+      <button id="btn-dock-bird" class="ui-btn small-btn">Bird Jump (↑)</button>
+      <button id="btn-dock-fast" class="ui-btn small-btn">Sky + (W)</button>
+      <button id="btn-dock-slow" class="ui-btn small-btn">Sky - (S)</button>
+      <button id="btn-dock-attack" class="ui-btn small-btn">Trigger Attack</button>
+    </footer>
+  </main>
+
+  <!-- =================================================================== -->
+  <!-- PAUSE & LIVE BIOME / BOARD CUSTOMIZATION MODAL                      -->
+  <!-- =================================================================== -->
+  <section id="modal-pause" class="overlay-modal hidden">
+    <div class="pause-panel ui-surface">
+      <div class="modal-header equidistant-row">
+        <h2>Game Paused — Live Studio & 360° Inspection</h2>
+        <button id="btn-resume-game" class="ui-btn primary-btn">Resume Match</button>
+      </div>
+      <p class="sub-note">The 3D board remains interactive behind this studio panel. Adjust biomes, sky modes, or colors live.</p>
+
+      <div class="pause-grid">
+        <div class="control-group">
+          <label>Live Biome Switch</label>
+          <div class="segmented-grid" id="pause-biome-select">
+            <button class="seg-btn" data-biome="royal">Royal</button>
+            <button class="seg-btn" data-biome="cyberpunk">Cyberpunk</button>
+            <button class="seg-btn" data-biome="angelic">Angelic</button>
+            <button class="seg-btn" data-biome="beach">Lagoon</button>
+            <button class="seg-btn" data-biome="cafe">Cafe</button>
+            <button class="seg-btn" data-biome="paper">Paper</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Live Sky Mode</label>
+          <div class="segmented-row" id="pause-sky-select">
+            <button class="seg-btn" data-skymode="dynamic">Dynamic</button>
+            <button class="seg-btn" data-skymode="day">Fixed Day</button>
+            <button class="seg-btn" data-skymode="night">Fixed Night</button>
+          </div>
+          <label class="top-gap">Live Colors (P1 / P2 / Table)</label>
+          <div class="color-picker-row">
+            <label class="color-chip">P1 <input type="color" id="pause-color-p1" value="#ff8da1" /></label>
+            <label class="color-chip">P2 <input type="color" id="pause-color-p2" value="#6bcBbd" /></label>
+            <label class="color-chip">Board <input type="color" id="pause-color-board" value="#dcd3f8" /></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer equidistant-row">
+        <button id="btn-save-leave" class="ui-btn accent-btn">Save Progress & Leave to Homescreen</button>
+        <button id="btn-discard-leave" class="ui-btn">Leave Without Saving</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================================================================== -->
+  <!-- LEADERBOARD, DUEL SUMMARY & VICTORY GRAPH MODAL                     -->
+  <!-- =================================================================== -->
+  <section id="modal-stats" class="overlay-modal hidden">
+    <div class="stats-panel ui-surface">
+      <div class="modal-header equidistant-row">
+        <h2 id="stats-modal-title">Analytics Graph & Leaderboard</h2>
+        <button id="btn-close-stats" class="ui-btn primary-btn">Close</button>
+      </div>
+      <p id="stats-modal-subtitle" class="sub-note">Cumulative wins across contenders and duel series breakdown.</p>
+
+      <canvas id="stats-chart" width="620" height="240"></canvas>
+
+      <div class="leaderboard-table-wrap">
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>Contender</th>
+              <th>Victories</th>
+              <th>Win Share</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <script src="main.js"></script>
+</body>
+</html>

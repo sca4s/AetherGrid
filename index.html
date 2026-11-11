@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Aethergrid — 3D Tactical Alignment</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23d8cff8'/%3E%3Cpath d='M22 12v40M42 12v40M12 22h40M12 42h40' stroke='%231f1938' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='22' cy='22' r='5' fill='%23ff8da1'/%3E%3Ccircle cx='42' cy='42' r='5' fill='%2370c1b3'/%3E%3C/svg%3E" />
+  <title>AetherGrid — 3D Tactical Alignment</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23d8cff8' stroke='%232d234e' stroke-width='4'/%3E%3Cpath d='M22 12v40M42 12v40M12 22h40M12 42h40' stroke='%231f1938' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='22' cy='22' r='5' fill='%23ff758f'/%3E%3Ccircle cx='42' cy='42' r='5' fill='%2338b6ff'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -12,21 +12,26 @@
   <!-- Upper-Left Blurred Plague Theme Wave Overlay -->
   <div id="plague-overlay" aria-hidden="true"></div>
 
+  <!-- Camera Mode Switch Toast Notification -->
+  <div id="camera-toast" class="camera-toast ui-surface hidden" aria-live="polite">
+    Camera Mode: <strong id="camera-toast-name">Orbital 360° Free</strong>
+  </div>
+
   <!-- 3D WebGL Viewport (Always Interactive 360°) -->
   <canvas id="game-canvas"></canvas>
 
   <!-- Non-Overlapping Flex Viewport Shell -->
   <div id="app-shell">
-    <!-- Dedicated Top Header Row (Never Overlaps Modals Below) -->
+    <!-- Top Header Row -->
     <header id="global-topbar">
       <div class="brand-pill ui-surface">
         <svg class="brand-icon" viewBox="0 0 64 64" aria-hidden="true">
-          <rect width="64" height="64" rx="16" fill="var(--accent-soft)" />
+          <rect width="60" height="60" x="2" y="2" rx="15" fill="var(--accent-soft)" stroke="var(--text-main)" stroke-width="3" />
           <path d="M22 12v40M42 12v40M12 22h40M12 42h40" stroke="var(--text-main)" stroke-width="5" stroke-linecap="round" />
-          <circle cx="22" cy="22" r="6" fill="var(--p1-default)" />
-          <circle cx="42" cy="42" r="6" fill="var(--p2-default)" />
+          <circle cx="22" cy="22" r="6" fill="#ff758f" />
+          <circle cx="42" cy="42" r="6" fill="#38b6ff" />
         </svg>
-        <span class="brand-title">Aethergrid</span>
+        <span class="brand-title">AetherGrid</span>
       </div>
 
       <div id="turn-banner" class="turn-pill ui-surface hidden">
@@ -35,6 +40,9 @@
       </div>
 
       <div class="top-actions">
+        <button id="btn-return-victory" class="ui-btn ui-surface accent-btn hidden" type="button">
+          Match Result
+        </button>
         <button id="btn-theme-toggle" class="ui-btn ui-surface" type="button">
           <span id="theme-label">Dark Mode</span>
         </button>
@@ -42,35 +50,46 @@
           Unhide All UI
         </button>
         <button id="btn-pause-open" class="ui-btn ui-surface hidden" type="button">
-          Pause / Studio
+          Pause (P)
         </button>
       </div>
     </header>
 
-    <!-- Centered Middle Stage (Holds Initiation Screens or Active HUD) -->
+    <!-- Centered Middle Stage -->
     <div id="stage-center">
       <!-- =============================================================== -->
-      <!-- SCREEN 1: DEVICE AUTO-DETECTION & SELECTION                     -->
+      <!-- SCREEN 1: DEVICE AUTO-DETECTION & STARTING CAMERA SELECTION     -->
       <!-- =============================================================== -->
       <section id="screen-device" class="init-screen active">
         <div class="center-modal ui-surface">
           <div class="modal-header">
-            <h1>Welcome to Aethergrid</h1>
+            <h1>Welcome to AetherGrid</h1>
             <p id="device-autodetect-msg" class="sub-note">Detecting hardware profile...</p>
           </div>
 
           <div class="device-grid">
             <button class="device-card ui-surface selected" data-device="desktop" id="card-desktop" type="button">
               <span class="device-badge">Keyboard + Mouse</span>
-              <h2>Desktop Workstation</h2>
-              <p>Precision cursor raycasting, W/S sky cycle acceleration keys, and C camera POV hotkeys.</p>
+              <h2>Desktop / Laptop</h2>
+              <p>Precision cursor raycasting, <kbd>P</kbd> to pause, <kbd>W</kbd>/<kbd>S</kbd> sky speed, <kbd>C</kbd> camera POV, and 360° drag orbit.</p>
             </button>
 
             <button class="device-card ui-surface" data-device="touch" id="card-touch" type="button">
               <span class="device-badge">Mobile / Tablet / Handheld Hybrid</span>
               <h2>Integrated Touch Unit</h2>
-              <p>Unified touch-orbit controls with an on-screen action dock for camera POV and sky cycle speed.</p>
+              <p>Unified touch-orbit 360° controls with an on-screen action dock for camera POV and sky speed.</p>
             </button>
+          </div>
+
+          <div class="control-group">
+            <label>Initial Camera Perspective (Drag 360° Freely in Any Mode)</label>
+            <div class="segmented-grid-5" id="init-cam-select">
+              <button class="seg-btn active" data-cam="0" type="button">Orbital 360°</button>
+              <button class="seg-btn" data-cam="1" type="button">Zenith Top-Down</button>
+              <button class="seg-btn" data-cam="2" type="button">Scenic Horizon</button>
+              <button class="seg-btn" data-cam="3" type="button">Contender 1 POV</button>
+              <button class="seg-btn" data-cam="4" type="button">Contender 2 POV</button>
+            </div>
           </div>
 
           <div class="saved-session-bar hidden" id="saved-session-bar">
@@ -89,7 +108,7 @@
       </section>
 
       <!-- =============================================================== -->
-      <!-- SCREEN 2A: MATCH & MODE SELECTION (CENTERED, EQUIDISTANT)       -->
+      <!-- SCREEN 2A: MATCH & MODE SELECTION                               -->
       <!-- =============================================================== -->
       <section id="screen-mode" class="init-screen">
         <div class="center-modal ui-surface">
@@ -151,20 +170,20 @@
           <div class="modal-footer">
             <button id="btn-back-device" class="ui-btn" type="button">Back to Device</button>
             <button id="btn-open-stats-init" class="ui-btn" type="button">Leaderboard & Graph</button>
-            <button id="btn-to-customize-screen" class="ui-btn primary-btn" type="button">Next: World & Board</button>
+            <button id="btn-to-customize-screen" class="ui-btn primary-btn" type="button">Next: World & Strikers</button>
           </div>
         </div>
       </section>
 
       <!-- =============================================================== -->
-      <!-- SCREEN 2B: BIOME, BOARD & SKY CUSTOMIZATION + 360° PREVIEW      -->
+      <!-- SCREEN 2B: BIOME, STRIKER & PASTEL SWATCH STUDIO                -->
       <!-- =============================================================== -->
       <section id="screen-customize" class="init-screen">
         <div class="center-modal ui-surface" id="customize-modal-card">
           <div class="modal-header-row">
             <div>
-              <h2>Step 2 — Biome, Board & Sky Studio</h2>
-              <p class="sub-note">Drag outside or toggle Full 360° View to inspect the realistic 3D world.</p>
+              <h2>Step 2 — Biome, Striker & Pastel Studio</h2>
+              <p class="sub-note">Choose individual striker shapes, high-contrast pastel swatches, and 3D worlds.</p>
             </div>
             <button id="btn-toggle-preview-peek" class="ui-btn accent-btn" type="button">Inspect 360° World</button>
           </div>
@@ -173,9 +192,10 @@
             <div class="control-group">
               <label>Realistic 3D Background Biome</label>
               <div class="segmented-grid-4" id="biome-select">
-                <button class="seg-btn active" data-biome="forest" type="button">Enchanted Forest</button>
+                <button class="seg-btn active" data-biome="gothic_balcony" type="button">Gothic Balcony</button>
+                <button class="seg-btn" data-biome="gothic_castle" type="button">Gothic Castle</button>
+                <button class="seg-btn" data-biome="forest" type="button">Enchanted Forest</button>
                 <button class="seg-btn" data-biome="cyberpunk" type="button">Cyberpunk Terrace</button>
-                <button class="seg-btn" data-biome="parisian" type="button">Parisian Terrace</button>
                 <button class="seg-btn" data-biome="desert" type="button">Sandstone Desert</button>
                 <button class="seg-btn" data-biome="underwater" type="button">Abyssal Reef</button>
                 <button class="seg-btn" data-biome="meadows" type="button">Alpine Meadows</button>
@@ -183,47 +203,75 @@
               </div>
             </div>
 
-            <div class="control-group">
-              <label>Striker Geometry (Automated & 2 Player)</label>
-              <div class="segmented-grid-3" id="shape-select">
-                <button class="seg-btn active" data-shape="xo" type="button">Classic X / O</button>
-                <button class="seg-btn" data-shape="poly" type="button">Crystal & Torus</button>
-                <button class="seg-btn" data-shape="crown" type="button">Obelisk & Sphere</button>
+            <div class="two-col-row">
+              <div class="control-group">
+                <label>Player 1 Striker Shape</label>
+                <div class="segmented-grid-3" id="p1-shape-select">
+                  <button class="seg-btn active" data-shape="x" type="button">Cross (X)</button>
+                  <button class="seg-btn" data-shape="o" type="button">Ring (O)</button>
+                  <button class="seg-btn" data-shape="crystal" type="button">Crystal</button>
+                  <button class="seg-btn" data-shape="torus" type="button">Torus Knot</button>
+                  <button class="seg-btn" data-shape="obelisk" type="button">Obelisk</button>
+                  <button class="seg-btn" data-shape="sphere" type="button">Sphere</button>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <label>Player 2 / AI Striker Shape</label>
+                <div class="segmented-grid-3" id="p2-shape-select">
+                  <button class="seg-btn" data-shape="x" type="button">Cross (X)</button>
+                  <button class="seg-btn active" data-shape="o" type="button">Ring (O)</button>
+                  <button class="seg-btn" data-shape="crystal" type="button">Crystal</button>
+                  <button class="seg-btn" data-shape="torus" type="button">Torus Knot</button>
+                  <button class="seg-btn" data-shape="obelisk" type="button">Obelisk</button>
+                  <button class="seg-btn" data-shape="sphere" type="button">Sphere</button>
+                </div>
               </div>
             </div>
 
             <div class="control-group">
-              <label>Matte Pastel Custom Colors (Striker 1 / Striker 2 / Board Table)</label>
-              <div class="segmented-grid-3">
-                <label class="color-chip">Striker 1 <input type="color" id="color-p1" value="#ff8da1" /></label>
-                <label class="color-chip">Striker 2 <input type="color" id="color-p2" value="#6bcBbd" /></label>
-                <label class="color-chip">Board Table <input type="color" id="color-board" value="#dcd3f8" /></label>
+              <label>High-Contrast Pastel Swatches — Player 1 / Player 2 / Board Table</label>
+              <div class="swatch-columns">
+                <div class="swatch-box">
+                  <span>P1 Striker</span>
+                  <div class="swatch-row" id="swatches-p1"></div>
+                </div>
+                <div class="swatch-box">
+                  <span>P2 Striker</span>
+                  <div class="swatch-row" id="swatches-p2"></div>
+                </div>
+                <div class="swatch-box">
+                  <span>Board Table</span>
+                  <div class="swatch-row" id="swatches-board"></div>
+                </div>
               </div>
             </div>
 
             <div class="control-group">
               <label>Sky Cycle & Initial Phase</label>
-              <div class="segmented-grid-3" id="sky-mode-select">
-                <button class="seg-btn active" data-skymode="dynamic" type="button">Dynamic Cycle</button>
-                <button class="seg-btn" data-skymode="day" type="button">Fixed Day</button>
-                <button class="seg-btn" data-skymode="night" type="button">Fixed Night</button>
-              </div>
-              <div class="two-col-row" id="sky-start-select">
-                <button class="seg-btn active" data-skystart="day" type="button">Start at Day</button>
-                <button class="seg-btn" data-skystart="night" type="button">Start at Night</button>
+              <div class="segmented-grid-5">
+                <div class="segmented-grid-3" id="sky-mode-select" style="grid-column: span 3;">
+                  <button class="seg-btn active" data-skymode="dynamic" type="button">Dynamic</button>
+                  <button class="seg-btn" data-skymode="day" type="button">Fixed Day</button>
+                  <button class="seg-btn" data-skymode="night" type="button">Fixed Night</button>
+                </div>
+                <div class="two-col-row" id="sky-start-select" style="grid-column: span 2;">
+                  <button class="seg-btn active" data-skystart="day" type="button">Start Day</button>
+                  <button class="seg-btn" data-skystart="night" type="button">Start Night</button>
+                </div>
               </div>
             </div>
           </div>
 
           <div class="modal-footer">
             <button id="btn-back-mode" class="ui-btn" type="button">Back to Mode Setup</button>
-            <button id="btn-deploy-match" class="ui-btn primary-btn" type="button">Deploy to Aethergrid</button>
+            <button id="btn-deploy-match" class="ui-btn primary-btn" type="button">Deploy to AetherGrid</button>
           </div>
         </div>
       </section>
 
       <!-- =============================================================== -->
-      <!-- IN-GAME HUD (CENTERED VERTICAL SIDES + SMOOTH SLIDE REFLOW)     -->
+      <!-- IN-GAME HUD (CENTERED SIDE COLUMNS + SMOOTH SLIDE REFLOW)       -->
       <!-- =============================================================== -->
       <main id="hud-layer" class="hud-layer hidden">
         <aside class="hud-column left-column" id="left-hud-col">
@@ -272,7 +320,7 @@
             <div class="telemetry-list">
               <div>Sky Phase: <strong id="hud-sky-phase">Daylight</strong></div>
               <div>Cycle Speed: <strong id="hud-sky-speed">1.0x</strong></div>
-              <div>Camera POV: <strong id="hud-cam-mode">Orbit 360°</strong></div>
+              <div>Camera POV: <strong id="hud-cam-mode">Orbital 360° Free</strong></div>
             </div>
             <div class="two-col-row">
               <button id="btn-hud-reset-round" class="ui-btn small-btn" type="button">Reset Board</button>
@@ -286,23 +334,42 @@
               <button class="card-hide-btn" title="Slide out panel" type="button">×</button>
             </div>
             <div class="controls-legend">
+              <p><kbd>P</kbd> Pause / Live Biome Studio</p>
               <p><kbd>W</kbd> / <kbd>S</kbd> Accelerate / Decelerate Sky</p>
-              <p><kbd>C</kbd> Switch Camera POV</p>
-              <p><kbd>Drag</kbd> Rotate 360° Scenic View</p>
+              <p><kbd>C</kbd> Switch Named Camera POV</p>
+              <p><kbd>Drag</kbd> Rotate 360° in Any POV</p>
             </div>
           </div>
         </aside>
       </main>
     </div>
 
-    <!-- Bottom Device Action Dock (Non-Overlapping Footer Row) -->
+    <!-- Bottom Device Action Dock -->
     <footer id="device-action-dock" class="bottom-dock ui-surface hidden">
       <button id="btn-dock-cam" class="ui-btn small-btn" type="button">Cam POV (C)</button>
+      <button id="btn-dock-pause" class="ui-btn small-btn" type="button">Pause (P)</button>
       <button id="btn-dock-fast" class="ui-btn small-btn" type="button">Sky + (W)</button>
       <button id="btn-dock-slow" class="ui-btn small-btn" type="button">Sky - (S)</button>
       <button id="btn-dock-attack" class="ui-btn small-btn" type="button">Arena Pulse</button>
     </footer>
   </div>
+
+  <!-- =================================================================== -->
+  <!-- VICTORY BANNER MODAL (REMATCH / HOMESCREEN / INSPECT BOARD)         -->
+  <!-- =================================================================== -->
+  <section id="modal-victory" class="overlay-modal hidden">
+    <div class="victory-banner-card ui-surface">
+      <div class="victory-badge">Match Concluded</div>
+      <h2 id="victory-headline">Astra Triumphs!</h2>
+      <p id="victory-subtext" class="sub-note">Aligned 3 consecutive strikes across the AetherGrid.</p>
+
+      <div class="segmented-grid-3 victory-actions">
+        <button id="btn-victory-rematch" class="ui-btn primary-btn" type="button">Rematch</button>
+        <button id="btn-victory-inspect" class="ui-btn accent-btn" type="button">Inspect Board (360°)</button>
+        <button id="btn-victory-home" class="ui-btn" type="button">Return to Homescreen</button>
+      </div>
+    </div>
+  </section>
 
   <!-- =================================================================== -->
   <!-- PAUSE & LIVE BIOME / BOARD CUSTOMIZATION MODAL                      -->
@@ -312,7 +379,7 @@
       <div class="modal-header-row">
         <div>
           <h2>Game Paused — Live Studio & 360° Preview</h2>
-          <p class="sub-note">Switch biomes, sky modes, or striker colors live while inspecting the board.</p>
+          <p class="sub-note">Press <kbd>P</kbd> or click Resume to return. Customize biomes, sky, or pastel swatches live.</p>
         </div>
         <button id="btn-resume-game" class="ui-btn primary-btn" type="button">Resume Match</button>
       </div>
@@ -321,13 +388,25 @@
         <div class="control-group">
           <label>Live Biome Background Switch</label>
           <div class="segmented-grid-4" id="pause-biome-select">
-            <button class="seg-btn active" data-biome="forest" type="button">Forest</button>
+            <button class="seg-btn active" data-biome="gothic_balcony" type="button">Gothic Balcony</button>
+            <button class="seg-btn" data-biome="gothic_castle" type="button">Gothic Castle</button>
+            <button class="seg-btn" data-biome="forest" type="button">Forest</button>
             <button class="seg-btn" data-biome="cyberpunk" type="button">Cyberpunk</button>
-            <button class="seg-btn" data-biome="parisian" type="button">Parisian</button>
             <button class="seg-btn" data-biome="desert" type="button">Desert</button>
             <button class="seg-btn" data-biome="underwater" type="button">Underwater</button>
             <button class="seg-btn" data-biome="meadows" type="button">Meadows</button>
-            <button class="seg-btn" data-biome="paper" type="button">Paper</button>
+            <button class="seg-btn" data-biome="paper" type="button">Sketch Paper</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Live Camera Mode Selection</label>
+          <div class="segmented-grid-5" id="pause-cam-select">
+            <button class="seg-btn active" data-cam="0" type="button">Orbital 360°</button>
+            <button class="seg-btn" data-cam="1" type="button">Zenith Top</button>
+            <button class="seg-btn" data-cam="2" type="button">Scenic Vista</button>
+            <button class="seg-btn" data-cam="3" type="button">P1 POV</button>
+            <button class="seg-btn" data-cam="4" type="button">P2 POV</button>
           </div>
         </div>
 
@@ -341,11 +420,20 @@
         </div>
 
         <div class="control-group">
-          <label>Live Colors (Striker 1 / Striker 2 / Board Table)</label>
-          <div class="segmented-grid-3">
-            <label class="color-chip">Striker 1 <input type="color" id="pause-color-p1" value="#ff8da1" /></label>
-            <label class="color-chip">Striker 2 <input type="color" id="pause-color-p2" value="#6bcBbd" /></label>
-            <label class="color-chip">Board <input type="color" id="pause-color-board" value="#dcd3f8" /></label>
+          <label>Live Pastel Swatches (P1 / P2 / Board Table)</label>
+          <div class="swatch-columns">
+            <div class="swatch-box">
+              <span>P1 Striker</span>
+              <div class="swatch-row" id="pause-swatches-p1"></div>
+            </div>
+            <div class="swatch-box">
+              <span>P2 Striker</span>
+              <div class="swatch-row" id="pause-swatches-p2"></div>
+            </div>
+            <div class="swatch-box">
+              <span>Board Table</span>
+              <div class="swatch-row" id="pause-swatches-board"></div>
+            </div>
           </div>
         </div>
       </div>

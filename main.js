@@ -1,7 +1,18 @@
 /* ============================================================================
-   AETHERGRID — 3D TACTICAL ALIGNMENT ENGINE
+   AETHERGRID — 3D TACTICAL ALIGNMENT ENGINE (v4 FAIL-SAFE RENDERING EDITION)
    Gothic & Scenic 3D Biomes + Continuous Crooked Sketching + Web Audio Synth
    ============================================================================ */
+
+// Null-safe DOM Helpers so cached HTML/JS mismatches can never halt the 3D loop
+const $ = (id) => document.getElementById(id);
+const on = (id, evt, handler) => {
+  const el = $(id);
+  if (el) el.addEventListener(evt, handler);
+};
+const setText = (id, text) => {
+  const el = $(id);
+  if (el) el.textContent = text;
+};
 
 // ----------------------------------------------------------------------------
 // 1. PROCEDURAL WEB AUDIO API SOUND ENGINE (ZERO EXTERNAL FILES)
@@ -12,21 +23,23 @@ class ProceduralSoundEngine {
   }
 
   ensureContext() {
-    if (!this.ctx) {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      this.ctx = new AudioCtx();
-    }
-    if (this.ctx.state === "suspended") {
-      this.ctx.resume();
-    }
+    try {
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) this.ctx = new AudioCtx();
+      }
+      if (this.ctx && this.ctx.state === "suspended") {
+        this.ctx.resume();
+      }
+    } catch (_) {}
   }
 
   playPlace(isPaper = false, player = 1) {
     this.ensureContext();
+    if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
     if (isPaper) {
-      // Realistic Graphite Pencil / Pen Sketch Stroke Sound
       const bufferSize = Math.floor(this.ctx.sampleRate * 0.28);
       const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
       const data = noiseBuffer.getChannelData(0);
@@ -71,6 +84,7 @@ class ProceduralSoundEngine {
 
   playWinFanfare() {
     this.ensureContext();
+    if (!this.ctx) return;
     const notes = [523.25, 659.25, 783.99, 1046.5];
     notes.forEach((freq, idx) => {
       const now = this.ctx.currentTime + idx * 0.085;
@@ -89,6 +103,7 @@ class ProceduralSoundEngine {
 
   playCameraSwitch() {
     this.ensureContext();
+    if (!this.ctx) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -105,6 +120,7 @@ class ProceduralSoundEngine {
 
   playThemePlague() {
     this.ensureContext();
+    if (!this.ctx) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -121,6 +137,7 @@ class ProceduralSoundEngine {
 
   playAttackPulse() {
     this.ensureContext();
+    if (!this.ctx) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -175,7 +192,6 @@ const ATTACK_TYPES = [
   "Prism Quake"
 ];
 
-// Named Camera Modes — All allow 360° Free User Rotation around their perspective!
 const CAMERA_MODES = [
   { name: "Orbital 360° Free", defaultPhi: 0.98, defaultTheta: 0.62, radius: 15.2 },
   { name: "Zenith Top-Down Tactical", defaultPhi: 0.16, defaultTheta: 0.0, radius: 16.4 },
@@ -184,208 +200,6 @@ const CAMERA_MODES = [
   { name: "Contender 2 South POV", defaultPhi: 0.92, defaultTheta: -1.57, radius: 14.8 }
 ];
 
-const state = {
-  screen: "device", // "device" | "mode" | "customize" | "game"
-  paused: false,
-  device: "desktop",
-  theme: "light",
-
-  // Game Config
-  mode: "ai", // "ai" | "pvp" | "ai-duel" | "pvp-duel"
-  rule: "classic", // "classic" | "threepower"
-  gridSize: 3,
-  difficulty: "medium",
-  biome: "gothic_balcony",
-  p1Shape: "x", // "x" | "o" | "crystal" | "torus" | "obelisk" | "sphere"
-  p2Shape: "o",
-  p1Name: "Astra",
-  p2Name: "Aether AI",
-  p1Color: STRIKER_SWATCHES[0].hex,
-  p2Color: STRIKER_SWATCHES[1].hex,
-  boardColor: BOARD_SWATCHES[0].hex,
-
-  // Sky Cycle
-  skyMode: "dynamic",
-  skyStart: "day",
-  skyTime: 0.25,
-  skySpeed: 1.0,
-
-  // Camera State
-  camModeIndex: 0,
-
-  // Active Match State
-  board: [],
-  currentPlayer: 1,
-  gameOver: false,
-  p1MarksQueue: [],
-  p2MarksQueue: [],
-  selectedRemovalIndex: null,
-  p1Score: 0,
-  p2Score: 0,
-  elapsedSeconds: 0,
-  highScore: parseInt(localStorage.getItem(STORAGE_KEYS.HIGH_SCORE) || "0", 10),
-  bestTime: parseInt(localStorage.getItem(STORAGE_KEYS.BEST_TIME) || "0", 10),
-  currentAttack: "Solar Tremor",
-
-  // Duel Progression
-  duelRound: 1,
-  duelTotalRounds: 1,
-  duelHistory: [],
-
-  // Leaderboard cumulative record
-  leaderboard: JSON.parse(
-    localStorage.getItem(STORAGE_KEYS.LEADERBOARD) ||
-      '{"Astra":2,"Aether AI":1,"Nova":1,"Ties":1}'
-  )
-};
-
-// ----------------------------------------------------------------------------
-// 3. THREE.JS SCENE, CONTINUOUS CROOKED TUBES & REALISTIC 3D BIOMES
-// ----------------------------------------------------------------------------
-const canvas = document.getElementById("game-canvas");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0xdfd8f7, 0.011);
-
-const camera = new THREE.PerspectiveCamera(
-  44,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  320
-);
-
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0xb8b0d8, 0.76);
-scene.add(hemiLight);
-
-const sunLight = new THREE.DirectionalLight(0xfff7e8, 0.75);
-sunLight.position.set(18, 28, 16);
-sunLight.castShadow = true;
-sunLight.shadow.mapSize.width = 1024;
-sunLight.shadow.mapSize.height = 1024;
-scene.add(sunLight);
-
-const worldGroup = new THREE.Group();
-const boardGroup = new THREE.Group();
-const cellsGroup = new THREE.Group();
-const marksGroup = new THREE.Group();
-const biomePropsGroup = new THREE.Group();
-const ambientParticlesGroup = new THREE.Group();
-const cloudsGroup = new THREE.Group();
-const pensGroup = new THREE.Group();
-
-worldGroup.add(
-  boardGroup,
-  cellsGroup,
-  marksGroup,
-  biomePropsGroup,
-  ambientParticlesGroup,
-  pensGroup
-);
-scene.add(worldGroup, cloudsGroup);
-
-// Camera Spherical Coordinates (Freely rotatable 360° in every mode)
-let camTheta = CAMERA_MODES[0].defaultTheta;
-let camPhi = CAMERA_MODES[0].defaultPhi;
-let camRadius = CAMERA_MODES[0].radius;
-let targetCamTheta = camTheta;
-let targetCamPhi = camPhi;
-let targetCamRadius = camRadius;
-let isDraggingBoard = false;
-let prevPointer = { x: 0, y: 0 };
-let pointerDownPos = { x: 0, y: 0 };
-
-function createMatteMaterial(hexColor, opacity = 1) {
-  return new THREE.MeshLambertMaterial({
-    color: new THREE.Color(hexColor),
-    transparent: opacity < 1,
-    opacity
-  });
-}
-
-// Continuous Unbroken Crooked Pencil Stroke Builder (Fixes Broken Lines in Sketch Paper Mode)
-function createContinuousCrookedStroke(pointsArray, radius, material, closed = false) {
-  const curve = new THREE.CatmullRomCurve3(pointsArray, closed);
-  const segments = Math.max(36, pointsArray.length * 8);
-  const tubeGeo = new THREE.TubeGeometry(curve, segments, radius, 10, closed);
-  return new THREE.Mesh(tubeGeo, material);
-}
-
-// 3D Volumetric Pastel Clouds
-function buildClouds() {
-  cloudsGroup.clear();
-  const cloudMat = createMatteMaterial("#ffffff", 0.88);
-  for (let i = 0; i < 12; i++) {
-    const cluster = new THREE.Group();
-    const puffs = 4 + (i % 3);
-    for (let p = 0; p < puffs; p++) {
-      const geo = new THREE.SphereGeometry(1.35 + (p % 2) * 0.55, 14, 14);
-      const mesh = new THREE.Mesh(geo, cloudMat);
-      mesh.position.set(p * 1.25 - 1.5, (p % 2) * 0.35, (p % 3) * 0.45);
-      mesh.scale.y = 0.58;
-      cluster.add(mesh);
-    }
-    const angle = (i / 12) * Math.PI * 2;
-    const dist = 25 + (i % 3) * 6;
-    cluster.position.set(
-      Math.cos(angle) * dist,
-      10.2 + (i % 3) * 2.2,
-      Math.sin(angle) * dist
-    );
-    cluster.userData = { angle, dist, speed: 0.022 + (i % 4) * 0.008 };
-    cloudsGroup.add(cluster);
-  }
-}
-
-// 2 Animated 3D Pens / Pencils for Sketch Paper Biome
-let pen1Mesh = null;
-let pen2Mesh = null;
-let activePenAnim = null;
-
-function buildSketchPens() {
-  pensGroup.clear();
-  const makePen = (bodyColor, tipColor, restX) => {
-    const pen = new THREE.Group();
-    const shaft = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.15, 0.15, 3.2, 14),
-      createMatteMaterial(bodyColor)
-    );
-    shaft.position.y = 2.0;
-
-    const woodCone = new THREE.Mesh(
-      new THREE.ConeGeometry(0.15, 0.55, 14),
-      createMatteMaterial("#f3d5b5")
-    );
-    woodCone.rotation.x = Math.PI;
-    woodCone.position.y = 0.15;
-
-    const graphite = new THREE.Mesh(
-      new THREE.ConeGeometry(0.06, 0.22, 12),
-      createMatteMaterial(tipColor)
-    );
-    graphite.rotation.x = Math.PI;
-    graphite.position.y = -0.08;
-
-    pen.add(shaft, woodCone, graphite);
-    pen.rotation.z = restX < 0 ? -0.26 : 0.26;
-    pen.position.set(restX, 1.15, -3.8);
-    pen.userData = { restPos: new THREE.Vector3(restX, 1.15, -3.8) };
-    return pen;
-  };
-
-  pen1Mesh = makePen(state.p1Color, state.p1Color, -5.6);
-  pen2Mesh = makePen(state.p2Color, state.p2Color, 5.6);
-  pensGroup.add(pen1Mesh, pen2Mesh);
-  pensGroup.visible = state.biome === "paper";
-}
-
-// ----------------------------------------------------------------------------
-// 4. BIOME PALETTES, VISIBLE BOARD BORDER FRAME & SCENIC 3D BACKGROUNDS
-// ----------------------------------------------------------------------------
 const BIOME_PALETTES = {
   gothic_balcony: {
     daySky: "#dcd3f2",
@@ -445,14 +259,242 @@ const BIOME_PALETTES = {
   }
 };
 
+const state = {
+  screen: "device",
+  paused: false,
+  device: "desktop",
+  theme: "light",
+
+  mode: "ai",
+  rule: "classic",
+  gridSize: 3,
+  difficulty: "medium",
+  biome: "gothic_balcony",
+  p1Shape: "x",
+  p2Shape: "o",
+  p1Name: "Astra",
+  p2Name: "Aether AI",
+  p1Color: STRIKER_SWATCHES[0].hex,
+  p2Color: STRIKER_SWATCHES[1].hex,
+  boardColor: BOARD_SWATCHES[0].hex,
+
+  skyMode: "dynamic",
+  skyStart: "day",
+  skyTime: 0.25,
+  skySpeed: 1.0,
+
+  camModeIndex: 0,
+
+  board: [],
+  currentPlayer: 1,
+  gameOver: false,
+  p1MarksQueue: [],
+  p2MarksQueue: [],
+  selectedRemovalIndex: null,
+  p1Score: 0,
+  p2Score: 0,
+  elapsedSeconds: 0,
+  highScore: parseInt(localStorage.getItem(STORAGE_KEYS.HIGH_SCORE) || "0", 10) || 0,
+  bestTime: parseInt(localStorage.getItem(STORAGE_KEYS.BEST_TIME) || "0", 10) || 0,
+  currentAttack: "Solar Tremor",
+
+  duelRound: 1,
+  duelTotalRounds: 1,
+  duelHistory: [],
+
+  leaderboard: (() => {
+    try {
+      return (
+        JSON.parse(localStorage.getItem(STORAGE_KEYS.LEADERBOARD)) || {
+          Astra: 2,
+          "Aether AI": 1,
+          Nova: 1,
+          Ties: 1
+        }
+      );
+    } catch (_) {
+      return { Astra: 2, "Aether AI": 1, Nova: 1, Ties: 1 };
+    }
+  })()
+};
+
+// Sanitize any legacy saved state from older versions in localStorage
+function sanitizeStateObject(obj) {
+  if (!obj || typeof obj !== "object") return;
+  if (!BIOME_PALETTES[obj.biome]) obj.biome = "gothic_balcony";
+  if (!obj.p1Shape) obj.p1Shape = "x";
+  if (!obj.p2Shape) obj.p2Shape = "o";
+  if (!Number.isInteger(obj.camModeIndex) || !CAMERA_MODES[obj.camModeIndex]) {
+    obj.camModeIndex = 0;
+  }
+  if (!Array.isArray(obj.p1MarksQueue)) obj.p1MarksQueue = [];
+  if (!Array.isArray(obj.p2MarksQueue)) obj.p2MarksQueue = [];
+}
+
+// ----------------------------------------------------------------------------
+// 3. THREE.JS SCENE INITIALIZATION (IMMEDIATE NON-BLACK CLEAR COLOR)
+// ----------------------------------------------------------------------------
+const canvas = $("game-canvas");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0xdcd3f2, 1);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xdcd3f2);
+scene.fog = new THREE.FogExp2(0xdcd3f2, 0.011);
+
+const camera = new THREE.PerspectiveCamera(
+  44,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  320
+);
+
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0xb8b0d8, 0.78);
+scene.add(hemiLight);
+
+const sunLight = new THREE.DirectionalLight(0xfff7e8, 0.76);
+sunLight.position.set(18, 28, 16);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.width = 1024;
+sunLight.shadow.mapSize.height = 1024;
+scene.add(sunLight);
+
+const worldGroup = new THREE.Group();
+const boardGroup = new THREE.Group();
+const cellsGroup = new THREE.Group();
+const marksGroup = new THREE.Group();
+const biomePropsGroup = new THREE.Group();
+const ambientParticlesGroup = new THREE.Group();
+const cloudsGroup = new THREE.Group();
+const pensGroup = new THREE.Group();
+
+worldGroup.add(
+  boardGroup,
+  cellsGroup,
+  marksGroup,
+  biomePropsGroup,
+  ambientParticlesGroup,
+  pensGroup
+);
+scene.add(worldGroup, cloudsGroup);
+
+// Safe group clearing helper
+function clearGroup(group) {
+  while (group.children.length > 0) {
+    group.remove(group.children[0]);
+  }
+}
+
+// Camera Spherical Coordinates
+let camTheta = CAMERA_MODES[0].defaultTheta;
+let camPhi = CAMERA_MODES[0].defaultPhi;
+let camRadius = CAMERA_MODES[0].radius;
+let targetCamTheta = camTheta;
+let targetCamPhi = camPhi;
+let targetCamRadius = camRadius;
+let isDraggingBoard = false;
+let prevPointer = { x: 0, y: 0 };
+let pointerDownPos = { x: 0, y: 0 };
+
+function createMatteMaterial(hexColor, opacity = 1) {
+  return new THREE.MeshLambertMaterial({
+    color: new THREE.Color(hexColor),
+    transparent: opacity < 1,
+    opacity
+  });
+}
+
+// Continuous Unbroken Crooked Pencil Stroke Builder
+function createContinuousCrookedStroke(pointsArray, radius, material, closed = false) {
+  const curve = new THREE.CatmullRomCurve3(pointsArray, closed);
+  const segments = Math.max(36, pointsArray.length * 8);
+  const tubeGeo = new THREE.TubeGeometry(curve, segments, radius, 10, closed);
+  return new THREE.Mesh(tubeGeo, material);
+}
+
+// 3D Volumetric Pastel Clouds
+function buildClouds() {
+  clearGroup(cloudsGroup);
+  const cloudMat = createMatteMaterial("#ffffff", 0.88);
+  for (let i = 0; i < 12; i++) {
+    const cluster = new THREE.Group();
+    const puffs = 4 + (i % 3);
+    for (let p = 0; p < puffs; p++) {
+      const geo = new THREE.SphereGeometry(1.35 + (p % 2) * 0.55, 14, 14);
+      const mesh = new THREE.Mesh(geo, cloudMat);
+      mesh.position.set(p * 1.25 - 1.5, (p % 2) * 0.35, (p % 3) * 0.45);
+      mesh.scale.y = 0.58;
+      cluster.add(mesh);
+    }
+    const angle = (i / 12) * Math.PI * 2;
+    const dist = 25 + (i % 3) * 6;
+    cluster.position.set(
+      Math.cos(angle) * dist,
+      10.2 + (i % 3) * 2.2,
+      Math.sin(angle) * dist
+    );
+    cluster.userData = { angle, dist, speed: 0.022 + (i % 4) * 0.008 };
+    cloudsGroup.add(cluster);
+  }
+}
+
+// 2 Animated 3D Pens / Pencils for Sketch Paper Biome
+let pen1Mesh = null;
+let pen2Mesh = null;
+let activePenAnim = null;
+
+function buildSketchPens() {
+  clearGroup(pensGroup);
+  const makePen = (bodyColor, tipColor, restX) => {
+    const pen = new THREE.Group();
+    const shaft = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.15, 0.15, 3.2, 14),
+      createMatteMaterial(bodyColor)
+    );
+    shaft.position.y = 2.0;
+
+    const woodCone = new THREE.Mesh(
+      new THREE.ConeGeometry(0.15, 0.55, 14),
+      createMatteMaterial("#f3d5b5")
+    );
+    woodCone.rotation.x = Math.PI;
+    woodCone.position.y = 0.15;
+
+    const graphite = new THREE.Mesh(
+      new THREE.ConeGeometry(0.06, 0.22, 12),
+      createMatteMaterial(tipColor)
+    );
+    graphite.rotation.x = Math.PI;
+    graphite.position.y = -0.08;
+
+    pen.add(shaft, woodCone, graphite);
+    pen.rotation.z = restX < 0 ? -0.26 : 0.26;
+    pen.position.set(restX, 1.15, -3.8);
+    pen.userData = { restPos: new THREE.Vector3(restX, 1.15, -3.8) };
+    return pen;
+  };
+
+  pen1Mesh = makePen(state.p1Color, state.p1Color, -5.6);
+  pen2Mesh = makePen(state.p2Color, state.p2Color, 5.6);
+  pensGroup.add(pen1Mesh, pen2Mesh);
+  pensGroup.visible = state.biome === "paper";
+}
+
+// ----------------------------------------------------------------------------
+// 4. VISIBLE BOARD BORDER FRAME & SCENIC 3D BACKGROUNDS
+// ----------------------------------------------------------------------------
 function buildBoardAndBiome() {
-  boardGroup.clear();
-  cellsGroup.clear();
-  biomePropsGroup.clear();
-  ambientParticlesGroup.clear();
+  clearGroup(boardGroup);
+  clearGroup(cellsGroup);
+  clearGroup(biomePropsGroup);
+  clearGroup(ambientParticlesGroup);
 
   const palette = BIOME_PALETTES[state.biome] || BIOME_PALETTES.gothic_balcony;
-  const N = state.gridSize;
+  const N = state.gridSize || 3;
   const boardSpan = 7.6;
   const cellSize = boardSpan / N;
   const half = boardSpan / 2;
@@ -467,7 +509,7 @@ function buildBoardAndBiome() {
   baseMesh.receiveShadow = true;
   boardGroup.add(baseMesh);
 
-  // 2. DISTINCT HIGH-CONTRAST 3D OUTER BOARD BORDER FRAME (Resolves Invisible Border Issue)
+  // 2. DISTINCT HIGH-CONTRAST 3D OUTER BOARD BORDER FRAME
   const frameMat = createMatteMaterial(palette.frameRim);
   const rimThickness = 0.28;
   const rimHeight = baseHeight + 0.18;
@@ -525,7 +567,6 @@ function buildBoardAndBiome() {
     const isOuterBoundary = i === 0 || i === N;
 
     if (state.biome === "paper") {
-      // Continuous Unbroken Hand-Drawn Crooked Pencil Lines using CatmullRomCurve3 + TubeGeometry
       const vPoints = [];
       const hPoints = [];
       const controlCount = 14;
@@ -556,7 +597,7 @@ function buildBoardAndBiome() {
     }
   }
 
-  // 5. Interactive Cell Hit Tiles with Subtle Contrast Pad
+  // 5. Interactive Cell Hit Tiles
   for (let r = 0; r < N; r++) {
     for (let c = 0; c < N; c++) {
       const x = -half + c * cellSize + cellSize / 2;
@@ -577,7 +618,6 @@ function buildBoardAndBiome() {
 
 function buildScenicBiomeWorld(biome) {
   if (biome === "gothic_balcony") {
-    // Gothic Stone Balcony / Windowside with Pointed Gothic Arches, Rose Window & Spires
     const balconyDeck = new THREE.Mesh(
       new THREE.BoxGeometry(17.5, 1.4, 15.5),
       createMatteMaterial("#463f57")
@@ -585,7 +625,6 @@ function buildScenicBiomeWorld(biome) {
     balconyDeck.position.y = -2.4;
     biomePropsGroup.add(balconyDeck);
 
-    // Checkerboard Stone Courtyard Inlay on Balcony
     const tileDark = createMatteMaterial("#352f44");
     const tileLight = createMatteMaterial("#655b7c");
     for (let rx = -3; rx <= 3; rx++) {
@@ -599,7 +638,6 @@ function buildScenicBiomeWorld(biome) {
       }
     }
 
-    // Ornate Gothic Balustrade Columns & Handrails around Balcony
     const stoneMat = createMatteMaterial("#2d273b");
     const railTop = new THREE.Mesh(new THREE.BoxGeometry(17.2, 0.28, 0.38), stoneMat);
     railTop.position.set(0, -0.5, -7.4);
@@ -611,14 +649,12 @@ function buildScenicBiomeWorld(biome) {
       biomePropsGroup.add(col);
     }
 
-    // Grand Gothic Windowside Wall & Pointed Lancet Arches behind the Balcony
     const archGroup = new THREE.Group();
     const pillarLeft = new THREE.Mesh(new THREE.BoxGeometry(1.4, 11.5, 1.4), stoneMat);
     pillarLeft.position.set(-5.8, 3.8, -8.2);
     const pillarRight = pillarLeft.clone();
     pillarRight.position.x = 5.8;
 
-    // Gothic Pointed Arch Ring & Stained-Glass Rose Window
     const gothicArch = new THREE.Mesh(
       new THREE.TorusGeometry(5.8, 0.55, 12, 32, Math.PI),
       stoneMat
@@ -641,7 +677,6 @@ function buildScenicBiomeWorld(biome) {
     archGroup.add(pillarLeft, pillarRight, gothicArch, roseRim, stainedGlass);
     biomePropsGroup.add(archGroup);
 
-    // Distant Gothic Cathedral Spires beyond the Balcony
     for (let s = -2; s <= 2; s++) {
       if (s === 0) continue;
       const spireTower = new THREE.Mesh(
@@ -659,7 +694,6 @@ function buildScenicBiomeWorld(biome) {
 
     spawnAmbientParticles("#e0aaff", 28, 13);
   } else if (biome === "gothic_castle") {
-    // Gothic Castle Courtyard, 4 Crenelated Corner Turrets, Curtain Walls & Torch Braziers
     const courtyard = new THREE.Mesh(
       new THREE.CylinderGeometry(24, 26, 1.6, 36),
       createMatteMaterial("#4a4e5c")
@@ -671,7 +705,6 @@ function buildScenicBiomeWorld(biome) {
     const roofSlate = createMatteMaterial("#222530");
     const flameMat = createMatteMaterial("#ff9f1c");
 
-    // 4 Corner Keep Towers with Crenelations & Conical Spires
     const towerCoords = [
       [-12, -12],
       [12, -12],
@@ -692,7 +725,6 @@ function buildScenicBiomeWorld(biome) {
       conicalRoof.position.set(tx, 12.2, tz);
       biomePropsGroup.add(turret, conicalRoof);
 
-      // Glowing Torch Brazier near inner courtyard
       const brazier = new THREE.Mesh(
         new THREE.CylinderGeometry(0.35, 0.2, 1.6, 10),
         roofSlate
@@ -703,7 +735,6 @@ function buildScenicBiomeWorld(biome) {
       biomePropsGroup.add(brazier, flame);
     });
 
-    // Castle Curtain Walls with Battlement Merlons
     [
       { x: 0, z: -12, rot: 0 },
       { x: 0, z: 12, rot: 0 },
@@ -728,7 +759,6 @@ function buildScenicBiomeWorld(biome) {
 
     spawnAmbientParticles("#ffb703", 30, 14);
   } else if (biome === "forest") {
-    // Realistic Multi-Layered Enchanted Forest, Mossy Boulders, Woodland Stream & Fireflies
     const ground = new THREE.Mesh(
       new THREE.CylinderGeometry(28, 30, 1.6, 36),
       createMatteMaterial("#7cb587")
@@ -736,7 +766,6 @@ function buildScenicBiomeWorld(biome) {
     ground.position.y = -2.5;
     biomePropsGroup.add(ground);
 
-    // Winding Forest Stream
     const stream = new THREE.Mesh(
       new THREE.BoxGeometry(38, 0.12, 3.4),
       createMatteMaterial("#72efdd", 0.75)
@@ -745,7 +774,6 @@ function buildScenicBiomeWorld(biome) {
     stream.rotation.y = 0.18;
     biomePropsGroup.add(stream);
 
-    // Pine & Oak Trees + Boulders
     for (let i = 0; i < 28; i++) {
       const angle = (i / 28) * Math.PI * 2 + (i % 3) * 0.1;
       const radius = 11.2 + (i % 4) * 3.4;
@@ -794,7 +822,6 @@ function buildScenicBiomeWorld(biome) {
 
     spawnAmbientParticles("#f9f871", 32, 13);
   } else if (biome === "cyberpunk") {
-    // High-Detail Cyberpunk Rooftop Terrace, Neon Skybridges & Skyscraper Metropolis
     const terrace = new THREE.Mesh(
       new THREE.BoxGeometry(16.2, 1.3, 16.2),
       createMatteMaterial("#23253a")
@@ -834,7 +861,6 @@ function buildScenicBiomeWorld(biome) {
 
     spawnAmbientParticles("#ff4d8d", 28, 15);
   } else if (biome === "desert") {
-    // Realistic Sandstone Desert: Layered Canyon Mesas, Pyramid, Oasis Pool, Palm Trees & Cacti
     const sandFloor = new THREE.Mesh(
       new THREE.CylinderGeometry(30, 32, 1.6, 36),
       createMatteMaterial("#f3c697")
@@ -842,7 +868,6 @@ function buildScenicBiomeWorld(biome) {
     sandFloor.position.y = -2.5;
     biomePropsGroup.add(sandFloor);
 
-    // Sculpted Sand Dunes & Ancient Pyramid
     const pyramid = new THREE.Mesh(
       new THREE.ConeGeometry(6.5, 8.5, 4),
       createMatteMaterial("#e09f67")
@@ -851,7 +876,6 @@ function buildScenicBiomeWorld(biome) {
     pyramid.position.set(11, 1.6, -17);
     biomePropsGroup.add(pyramid);
 
-    // Layered Red-Rock Canyon Mesa & Natural Arch
     const mesaBase = new THREE.Mesh(
       new THREE.CylinderGeometry(4.2, 5.4, 5.5, 9),
       createMatteMaterial("#c86d51")
@@ -871,7 +895,6 @@ function buildScenicBiomeWorld(biome) {
     arch.position.set(0, -1.8, -18);
     biomePropsGroup.add(arch);
 
-    // Oasis Water Pool & Palm Trees
     const oasis = new THREE.Mesh(
       new THREE.CylinderGeometry(3.8, 3.8, 0.14, 24),
       createMatteMaterial("#48cae4", 0.85)
@@ -898,7 +921,6 @@ function buildScenicBiomeWorld(biome) {
 
     spawnAmbientParticles("#ffd166", 24, 14);
   } else if (biome === "underwater") {
-    // Abyssal Coral Reef, Kelp Forests, Seafloor Arches & Rising Bubbles
     const seabed = new THREE.Mesh(
       new THREE.CylinderGeometry(28, 30, 1.5, 36),
       createMatteMaterial("#cad2c5")
@@ -920,7 +942,6 @@ function buildScenicBiomeWorld(biome) {
 
     spawnAmbientParticles("#ffffff", 36, 14);
   } else if (biome === "meadows") {
-    // Alpine Meadows, Rolling Terraced Hills & Snow-Capped Mountain Range
     const meadowFloor = new THREE.Mesh(
       new THREE.CylinderGeometry(28, 30, 1.5, 36),
       createMatteMaterial("#99d98c")
@@ -944,7 +965,6 @@ function buildScenicBiomeWorld(biome) {
       biomePropsGroup.add(peak, snow);
     }
   } else if (biome === "paper") {
-    // Drafting Studio Wood Desk under the Sketch Sheet
     const desk = new THREE.Mesh(
       new THREE.BoxGeometry(24, 0.8, 20),
       createMatteMaterial("#c9ada7")
@@ -980,12 +1000,11 @@ function createStrikerMesh(player, cellData, isSelectedForRemoval = false) {
     : player === 1
     ? state.p1Color
     : state.p2Color;
-  const shapeType = player === 1 ? state.p1Shape : state.p2Shape;
+  const shapeType = (player === 1 ? state.p1Shape : state.p2Shape) || (player === 1 ? "x" : "o");
   const mat = createMatteMaterial(colorHex);
   const scale = (cellData.cellSize / 2.55) * 0.84;
 
   if (state.biome === "paper") {
-    // Continuous Unbroken Hand-Drawn Crooked Sketch Strokes
     if (shapeType === "x") {
       const diag1 = [];
       const diag2 = [];
@@ -999,7 +1018,6 @@ function createStrikerMesh(player, cellData, isSelectedForRemoval = false) {
       group.add(createContinuousCrookedStroke(diag1, 0.068, mat, false));
       group.add(createContinuousCrookedStroke(diag2, 0.068, mat, false));
     } else {
-      // Unbroken continuous crooked circle loop
       const loopPoints = [];
       const steps = 20;
       for (let i = 0; i < steps; i++) {
@@ -1025,7 +1043,7 @@ function createStrikerMesh(player, cellData, isSelectedForRemoval = false) {
     group.add(new THREE.Mesh(new THREE.TorusKnotGeometry(0.42, 0.14, 48, 12), mat));
   } else if (shapeType === "obelisk") {
     group.add(new THREE.Mesh(new THREE.ConeGeometry(0.62, 1.15, 5), mat));
-  } else if (shapeType === "sphere") {
+  } else {
     group.add(new THREE.Mesh(new THREE.SphereGeometry(0.6, 22, 22), mat));
   }
 
@@ -1036,8 +1054,8 @@ function createStrikerMesh(player, cellData, isSelectedForRemoval = false) {
 }
 
 function rebuildAllMarks() {
-  marksGroup.clear();
-  const N = state.gridSize;
+  clearGroup(marksGroup);
+  const N = state.gridSize || 3;
   if (!state.board.length) return;
 
   cellsGroup.children.forEach((tile) => {
@@ -1062,7 +1080,8 @@ function rebuildAllMarks() {
 // 6. CORE GAMEPLAY ENGINE, VICTORY BANNER & AUTOMATED AI
 // ----------------------------------------------------------------------------
 function initBoardState(resetScores = false) {
-  const N = state.gridSize;
+  sanitizeStateObject(state);
+  const N = state.gridSize || 3;
   state.board = Array.from({ length: N }, () => Array(N).fill(0));
   state.currentPlayer = 1;
   state.gameOver = false;
@@ -1071,8 +1090,8 @@ function initBoardState(resetScores = false) {
   state.selectedRemovalIndex = null;
   state.currentAttack = ATTACK_TYPES[Math.floor(Math.random() * ATTACK_TYPES.length)];
 
-  document.getElementById("modal-victory").classList.add("hidden");
-  document.getElementById("btn-return-victory").classList.add("hidden");
+  if ($("modal-victory")) $("modal-victory").classList.add("hidden");
+  if ($("btn-return-victory")) $("btn-return-victory").classList.add("hidden");
 
   if (resetScores) {
     state.p1Score = 0;
@@ -1378,15 +1397,18 @@ function concludeRound(winner) {
   localStorage.setItem(STORAGE_KEYS.LEADERBOARD, JSON.stringify(state.leaderboard));
   updateHUD();
 
-  // Show Victory Banner with Rematch / Inspect Board / Return to Homescreen
-  document.getElementById("victory-headline").textContent = headline;
-  document.getElementById("victory-subtext").textContent =
+  setText("victory-headline", headline);
+  setText(
+    "victory-subtext",
     state.duelTotalRounds > 1
       ? `${subtext} (Duel Round ${state.duelRound}/${state.duelTotalRounds} • Score ${state.p1Score}:${state.p2Score})`
-      : subtext;
-  document.getElementById("btn-victory-rematch").textContent =
-    state.duelRound < state.duelTotalRounds ? "Next Duel Round" : "Rematch";
-  document.getElementById("modal-victory").classList.remove("hidden");
+      : subtext
+  );
+  setText(
+    "btn-victory-rematch",
+    state.duelRound < state.duelTotalRounds ? "Next Duel Round" : "Rematch"
+  );
+  if ($("modal-victory")) $("modal-victory").classList.remove("hidden");
 }
 
 // ----------------------------------------------------------------------------
@@ -1396,15 +1418,14 @@ let attackPulseTime = 0;
 let toastTimeout = null;
 
 function applyCameraMode(index, showNotification = true) {
-  state.camModeIndex = index % CAMERA_MODES.length;
+  state.camModeIndex = ((index % CAMERA_MODES.length) + CAMERA_MODES.length) % CAMERA_MODES.length;
   const preset = CAMERA_MODES[state.camModeIndex];
   targetCamPhi = preset.defaultPhi;
   targetCamTheta = preset.defaultTheta;
   targetCamRadius = preset.radius;
 
-  // Sync Initiation & Pause Camera Buttons
   ["init-cam-select", "pause-cam-select"].forEach((id) => {
-    const group = document.getElementById(id);
+    const group = $(id);
     if (!group) return;
     group.querySelectorAll(".seg-btn").forEach((btn) => {
       btn.classList.toggle("active", parseInt(btn.dataset.cam, 10) === state.camModeIndex);
@@ -1414,13 +1435,12 @@ function applyCameraMode(index, showNotification = true) {
   sfx.playCameraSwitch();
   updateHUD();
 
-  if (showNotification) {
-    const toast = document.getElementById("camera-toast");
-    document.getElementById("camera-toast-name").textContent = preset.name;
-    toast.classList.remove("hidden");
+  if (showNotification && $("camera-toast")) {
+    setText("camera-toast-name", preset.name);
+    $("camera-toast").classList.remove("hidden");
     clearTimeout(toastTimeout);
     toastTimeout = setTimeout(() => {
-      toast.classList.add("hidden");
+      $("camera-toast").classList.add("hidden");
     }, 2200);
   }
 }
@@ -1439,15 +1459,16 @@ function triggerRandomAttackVisual() {
 function triggerPlagueThemeSwitch() {
   state.theme = state.theme === "light" ? "dark" : "light";
   document.documentElement.setAttribute("data-theme", state.theme);
-  document.getElementById("theme-label").textContent =
-    state.theme === "light" ? "Dark Mode" : "Light Mode";
+  setText("theme-label", state.theme === "light" ? "Dark Mode" : "Light Mode");
 
   sfx.playThemePlague();
 
-  const overlay = document.getElementById("plague-overlay");
-  overlay.classList.remove("plague-active");
-  void overlay.offsetWidth;
-  overlay.classList.add("plague-active");
+  const overlay = $("plague-overlay");
+  if (overlay) {
+    overlay.classList.remove("plague-active");
+    void overlay.offsetWidth;
+    overlay.classList.add("plague-active");
+  }
 
   document.querySelectorAll(".ui-surface").forEach((el, idx) => {
     el.classList.remove("section-plague");
@@ -1457,7 +1478,7 @@ function triggerPlagueThemeSwitch() {
     }, idx * 22);
   });
 
-  if (!document.getElementById("modal-stats").classList.contains("hidden")) {
+  if ($("modal-stats") && !$("modal-stats").classList.contains("hidden")) {
     drawStatsChart();
   }
 }
@@ -1469,56 +1490,63 @@ function formatSeconds(sec) {
 }
 
 function updateTurnBanner(customText) {
-  const bannerText = document.getElementById("turn-text");
-  const dot = document.getElementById("turn-dot");
+  const dot = $("turn-dot");
   const activeName = state.currentPlayer === 1 ? state.p1Name : state.p2Name;
-  const activeShape = (state.currentPlayer === 1 ? state.p1Shape : state.p2Shape).toUpperCase();
-  dot.style.backgroundColor = state.currentPlayer === 1 ? state.p1Color : state.p2Color;
+  const rawShape = (state.currentPlayer === 1 ? state.p1Shape : state.p2Shape) || "x";
+  const activeShape = String(rawShape).toUpperCase();
+  if (dot) {
+    dot.style.backgroundColor = state.currentPlayer === 1 ? state.p1Color : state.p2Color;
+  }
 
   if (customText) {
-    bannerText.textContent = customText;
+    setText("turn-text", customText);
     return;
   }
 
   const queue = state.currentPlayer === 1 ? state.p1MarksQueue : state.p2MarksQueue;
   if (state.rule === "threepower" && queue.length >= 3 && state.selectedRemovalIndex === null) {
-    bannerText.textContent = `${activeName}'s Turn (${activeShape}) — Tap 1 of your 3 marks to relocate`;
+    setText("turn-text", `${activeName}'s Turn (${activeShape}) — Tap 1 of your 3 marks to relocate`);
   } else {
-    bannerText.textContent = `${activeName}'s Turn (${activeShape})`;
+    setText("turn-text", `${activeName}'s Turn (${activeShape})`);
   }
 }
 
 function updateHUD() {
-  document.getElementById("hud-p1-name").textContent = `${state.p1Name} (${state.p1Shape.toUpperCase()})`;
-  document.getElementById("hud-p2-name").textContent = `${state.p2Name} (${state.p2Shape.toUpperCase()})`;
-  document.getElementById("hud-p1-score").textContent = state.p1Score;
-  document.getElementById("hud-p2-score").textContent = state.p2Score;
-  document.getElementById("hud-p1-marks").textContent =
+  sanitizeStateObject(state);
+  setText("hud-p1-name", `${state.p1Name} (${String(state.p1Shape).toUpperCase()})`);
+  setText("hud-p2-name", `${state.p2Name} (${String(state.p2Shape).toUpperCase()})`);
+  setText("hud-p1-score", state.p1Score);
+  setText("hud-p2-score", state.p2Score);
+  setText(
+    "hud-p1-marks",
     state.rule === "threepower"
       ? `Active: ${state.p1MarksQueue.length}/3`
-      : `Marks: ${state.p1MarksQueue.length}`;
-  document.getElementById("hud-p2-marks").textContent =
+      : `Marks: ${state.p1MarksQueue.length}`
+  );
+  setText(
+    "hud-p2-marks",
     state.rule === "threepower"
       ? `Active: ${state.p2MarksQueue.length}/3`
-      : `Marks: ${state.p2MarksQueue.length}`;
+      : `Marks: ${state.p2MarksQueue.length}`
+  );
 
   const modeLabel =
     state.duelTotalRounds > 1
-      ? `Duel Rd ${state.duelRound}/${state.duelTotalRounds} (${state.difficulty.toUpperCase()})`
+      ? `Duel Rd ${state.duelRound}/${state.duelTotalRounds} (${String(state.difficulty).toUpperCase()})`
       : `${state.gridSize}×${state.gridSize} • ${
           state.rule === "threepower" ? "Three Power Max" : "Standard"
         }`;
-  document.getElementById("hud-mode-label").textContent = modeLabel;
+  setText("hud-mode-label", modeLabel);
 
-  document.getElementById("hud-timer").textContent = formatSeconds(state.elapsedSeconds);
-  document.getElementById("hud-highscore").textContent = state.highScore;
-  document.getElementById("hud-besttime").textContent = formatSeconds(state.bestTime);
-  document.getElementById("hud-attack-name").textContent = state.currentAttack;
-  document.getElementById("hud-cam-mode").textContent = CAMERA_MODES[state.camModeIndex].name;
-  document.getElementById("hud-sky-speed").textContent = `${state.skySpeed.toFixed(1)}x`;
+  setText("hud-timer", formatSeconds(state.elapsedSeconds));
+  setText("hud-highscore", state.highScore);
+  setText("hud-besttime", formatSeconds(state.bestTime));
+  setText("hud-attack-name", state.currentAttack);
+  setText("hud-cam-mode", CAMERA_MODES[state.camModeIndex]?.name || "Orbital 360° Free");
+  setText("hud-sky-speed", `${state.skySpeed.toFixed(1)}x`);
 
-  document.getElementById("init-high-score").textContent = state.highScore;
-  document.getElementById("init-best-time").textContent = formatSeconds(state.bestTime);
+  setText("init-high-score", state.highScore);
+  setText("init-best-time", formatSeconds(state.bestTime));
 
   if (!state.gameOver) updateTurnBanner();
 }
@@ -1527,29 +1555,33 @@ function updateHUD() {
 // 8. ANALYTICS GRAPH & LEADERBOARD RENDERER
 // ----------------------------------------------------------------------------
 function openStatsModal(customSubtitle) {
-  const modal = document.getElementById("modal-stats");
+  const modal = $("modal-stats");
+  if (!modal) return;
   modal.classList.remove("hidden");
   if (customSubtitle) {
-    document.getElementById("stats-modal-subtitle").textContent = customSubtitle;
+    setText("stats-modal-subtitle", customSubtitle);
   }
 
-  const tbody = document.getElementById("leaderboard-body");
-  tbody.innerHTML = "";
-  const entries = Object.entries(state.leaderboard).sort((a, b) => b[1] - a[1]);
-  const totalWins = Math.max(1, entries.reduce((acc, [, v]) => acc + v, 0));
+  const tbody = $("leaderboard-body");
+  if (tbody) {
+    tbody.innerHTML = "";
+    const entries = Object.entries(state.leaderboard).sort((a, b) => b[1] - a[1]);
+    const totalWins = Math.max(1, entries.reduce((acc, [, v]) => acc + v, 0));
 
-  entries.forEach(([name, count]) => {
-    const tr = document.createElement("tr");
-    const pct = Math.round((count / totalWins) * 100);
-    tr.innerHTML = `<td><strong>${name}</strong></td><td>${count}</td><td>${pct}%</td>`;
-    tbody.appendChild(tr);
-  });
+    entries.forEach(([name, count]) => {
+      const tr = document.createElement("tr");
+      const pct = Math.round((count / totalWins) * 100);
+      tr.innerHTML = `<td><strong>${name}</strong></td><td>${count}</td><td>${pct}%</td>`;
+      tbody.appendChild(tr);
+    });
+  }
 
   requestAnimationFrame(drawStatsChart);
 }
 
 function drawStatsChart() {
-  const chart = document.getElementById("stats-chart");
+  const chart = $("stats-chart");
+  if (!chart) return;
   const rect = chart.getBoundingClientRect();
   if (rect.width === 0 || rect.height === 0) return;
 
@@ -1607,9 +1639,7 @@ function drawStatsChart() {
     const y = padTop + plotH - barH;
 
     ctx.fillStyle = barColors[idx % barColors.length];
-    ctx.beginPath();
-    ctx.roundRect(x, y, barW, barH, 6);
-    ctx.fill();
+    ctx.fillRect(x, y, barW, barH);
 
     ctx.fillStyle = textColor;
     ctx.textAlign = "center";
@@ -1626,14 +1656,14 @@ function drawStatsChart() {
 // ----------------------------------------------------------------------------
 function renderSwatchPalettes() {
   const buildRow = (containerId, swatches, currentHex, onSelect) => {
-    const container = document.getElementById(containerId);
+    const container = $(containerId);
     if (!container) return;
     container.innerHTML = "";
     swatches.forEach((sw) => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = `pastel-swatch ${
-        sw.hex.toLowerCase() === currentHex.toLowerCase() ? "active" : ""
+        sw.hex.toLowerCase() === String(currentHex).toLowerCase() ? "active" : ""
       }`;
       btn.style.backgroundColor = sw.hex;
       btn.title = sw.name;
@@ -1665,7 +1695,7 @@ function renderSwatchPalettes() {
 function togglePauseMenu() {
   if (state.screen !== "game") return;
   state.paused = !state.paused;
-  document.getElementById("modal-pause").classList.toggle("hidden", !state.paused);
+  if ($("modal-pause")) $("modal-pause").classList.toggle("hidden", !state.paused);
   sfx.playCameraSwitch();
 }
 
@@ -1676,15 +1706,18 @@ function autoDetectDevice() {
     window.matchMedia("(pointer: coarse)").matches;
   state.device = isTouch ? "touch" : "desktop";
 
-  document.getElementById("card-desktop").classList.toggle("selected", !isTouch);
-  document.getElementById("card-touch").classList.toggle("selected", isTouch);
-  document.getElementById("device-autodetect-msg").textContent = isTouch
-    ? "Auto-Detected: Integrated Touch Unit (Mobile / Tablet / Handheld Hybrid)"
-    : "Auto-Detected: Desktop / Laptop Workstation (Press P to Pause in-game)";
+  if ($("card-desktop")) $("card-desktop").classList.toggle("selected", !isTouch);
+  if ($("card-touch")) $("card-touch").classList.toggle("selected", isTouch);
+  setText(
+    "device-autodetect-msg",
+    isTouch
+      ? "Auto-Detected: Integrated Touch Unit (Mobile / Tablet / Handheld Hybrid)"
+      : "Auto-Detected: Desktop / Laptop Workstation (Press P to Pause in-game)"
+  );
 }
 
 function bindSegmentedGroup(containerId, callback) {
-  const container = document.getElementById(containerId);
+  const container = $(containerId);
   if (!container) return;
   container.querySelectorAll(".seg-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -1698,24 +1731,20 @@ function bindSegmentedGroup(containerId, callback) {
 
 function switchScreen(target) {
   state.screen = target;
-  document
-    .getElementById("screen-device")
-    .classList.toggle("active", target === "device");
-  document
-    .getElementById("screen-mode")
-    .classList.toggle("active", target === "mode");
-  document
-    .getElementById("screen-customize")
-    .classList.toggle("active", target === "customize");
+  if ($("screen-device")) $("screen-device").classList.toggle("active", target === "device");
+  if ($("screen-mode")) $("screen-mode").classList.toggle("active", target === "mode");
+  if ($("screen-customize")) {
+    $("screen-customize").classList.toggle("active", target === "customize");
+  }
 
   const inGame = target === "game";
-  document.getElementById("hud-layer").classList.toggle("hidden", !inGame);
-  document.getElementById("turn-banner").classList.toggle("hidden", !inGame);
-  document.getElementById("btn-pause-open").classList.toggle("hidden", !inGame);
-  document.getElementById("device-action-dock").classList.toggle("hidden", !inGame);
+  if ($("hud-layer")) $("hud-layer").classList.toggle("hidden", !inGame);
+  if ($("turn-banner")) $("turn-banner").classList.toggle("hidden", !inGame);
+  if ($("btn-pause-open")) $("btn-pause-open").classList.toggle("hidden", !inGame);
+  if ($("device-action-dock")) $("device-action-dock").classList.toggle("hidden", !inGame);
   if (!inGame) {
-    document.getElementById("modal-victory").classList.add("hidden");
-    document.getElementById("btn-return-victory").classList.add("hidden");
+    if ($("modal-victory")) $("modal-victory").classList.add("hidden");
+    if ($("btn-return-victory")) $("btn-return-victory").classList.add("hidden");
   }
 }
 
@@ -1723,8 +1752,8 @@ function wireUIEvents() {
   autoDetectDevice();
   renderSwatchPalettes();
 
-  if (localStorage.getItem(STORAGE_KEYS.SAVED_MATCH)) {
-    document.getElementById("saved-session-bar").classList.remove("hidden");
+  if (localStorage.getItem(STORAGE_KEYS.SAVED_MATCH) && $("saved-session-bar")) {
+    $("saved-session-bar").classList.remove("hidden");
   }
 
   document.querySelectorAll(".device-card").forEach((card) => {
@@ -1744,50 +1773,45 @@ function wireUIEvents() {
     applyCameraMode(parseInt(data.cam, 10), true);
   });
 
-  document.getElementById("btn-to-mode-screen").addEventListener("click", () => {
+  on("btn-to-mode-screen", "click", () => {
     sfx.playCameraSwitch();
     switchScreen("mode");
   });
 
-  document.getElementById("btn-back-device").addEventListener("click", () => {
-    switchScreen("device");
-  });
+  on("btn-back-device", "click", () => switchScreen("device"));
 
-  document.getElementById("btn-to-customize-screen").addEventListener("click", () => {
+  on("btn-to-customize-screen", "click", () => {
     sfx.playCameraSwitch();
     switchScreen("customize");
   });
 
-  document.getElementById("btn-back-mode").addEventListener("click", () => {
-    switchScreen("mode");
-  });
+  on("btn-back-mode", "click", () => switchScreen("mode"));
 
-  document.getElementById("btn-toggle-preview-peek").addEventListener("click", (e) => {
-    const card = document.getElementById("customize-modal-card");
+  on("btn-toggle-preview-peek", "click", (e) => {
+    const card = $("customize-modal-card");
+    if (!card) return;
     const isPeeking = card.classList.toggle("peek-mode");
     e.currentTarget.textContent = isPeeking ? "Restore Studio Panel" : "Inspect 360° World";
   });
 
-  document.getElementById("btn-deploy-match").addEventListener("click", () => {
-    document.getElementById("customize-modal-card").classList.remove("peek-mode");
-    state.p1Name = document.getElementById("input-p1-name").value.trim() || "Player 1";
+  on("btn-deploy-match", "click", () => {
+    if ($("customize-modal-card")) $("customize-modal-card").classList.remove("peek-mode");
+    const p1In = $("input-p1-name");
+    const p2In = $("input-p2-name");
+    state.p1Name = (p1In && p1In.value.trim()) || "Player 1";
     state.p2Name =
-      document.getElementById("input-p2-name").value.trim() ||
-      (state.mode.startsWith("ai") ? "Aether AI" : "Player 2");
+      (p2In && p2In.value.trim()) || (state.mode.startsWith("ai") ? "Aether AI" : "Player 2");
     initBoardState(true);
     switchScreen("game");
     applyCameraMode(state.camModeIndex, true);
   });
 
-  document
-    .getElementById("btn-theme-toggle")
-    .addEventListener("click", triggerPlagueThemeSwitch);
+  on("btn-theme-toggle", "click", triggerPlagueThemeSwitch);
 
-  // Mode & Studio Segmented Controls
   bindSegmentedGroup("mode-select", (data) => {
     state.mode = data.mode;
-    const p2Input = document.getElementById("input-p2-name");
-    p2Input.value = state.mode.startsWith("ai") ? "Aether AI" : "Nova";
+    const p2Input = $("input-p2-name");
+    if (p2Input) p2Input.value = state.mode.startsWith("ai") ? "Aether AI" : "Nova";
   });
 
   bindSegmentedGroup("rule-select", (data) => {
@@ -1827,8 +1851,7 @@ function wireUIEvents() {
     state.skyTime = state.skyStart === "day" ? 0.25 : 0.75;
   });
 
-  // Victory Modal Buttons (Rematch / Inspect Board / Return to Homescreen)
-  document.getElementById("btn-victory-rematch").addEventListener("click", () => {
+  on("btn-victory-rematch", "click", () => {
     if (state.duelRound < state.duelTotalRounds) {
       state.duelRound++;
       if (state.mode === "ai-duel") {
@@ -1841,43 +1864,41 @@ function wireUIEvents() {
     }
   });
 
-  document.getElementById("btn-victory-inspect").addEventListener("click", () => {
-    document.getElementById("modal-victory").classList.add("hidden");
-    document.getElementById("btn-return-victory").classList.remove("hidden");
-    applyCameraMode(0, true); // Switch to Orbital 360° Free for full inspection
+  on("btn-victory-inspect", "click", () => {
+    if ($("modal-victory")) $("modal-victory").classList.add("hidden");
+    if ($("btn-return-victory")) $("btn-return-victory").classList.remove("hidden");
+    applyCameraMode(0, true);
   });
 
-  document.getElementById("btn-return-victory").addEventListener("click", () => {
-    document.getElementById("modal-victory").classList.remove("hidden");
+  on("btn-return-victory", "click", () => {
+    if ($("modal-victory")) $("modal-victory").classList.remove("hidden");
   });
 
-  document.getElementById("btn-victory-home").addEventListener("click", () => {
-    document.getElementById("modal-victory").classList.add("hidden");
+  on("btn-victory-home", "click", () => {
+    if ($("modal-victory")) $("modal-victory").classList.add("hidden");
     switchScreen("device");
   });
 
-  // Individual HUD Slide-Out & Smooth Reflow
   document.querySelectorAll(".card-hide-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const card = btn.closest(".hud-card");
-      card.classList.add("slid-out");
-      document.getElementById("btn-unhide-all").classList.remove("hidden");
+      if (card) card.classList.add("slid-out");
+      if ($("btn-unhide-all")) $("btn-unhide-all").classList.remove("hidden");
       sfx.playCameraSwitch();
     });
   });
 
-  document.getElementById("btn-unhide-all").addEventListener("click", () => {
+  on("btn-unhide-all", "click", () => {
     document.querySelectorAll(".hud-card.slid-out").forEach((card) => {
       card.classList.remove("slid-out");
     });
-    document.getElementById("btn-unhide-all").classList.add("hidden");
+    if ($("btn-unhide-all")) $("btn-unhide-all").classList.add("hidden");
     sfx.playCameraSwitch();
   });
 
-  // Pause Studio & Save Progress
-  document.getElementById("btn-pause-open").addEventListener("click", togglePauseMenu);
-  document.getElementById("btn-dock-pause").addEventListener("click", togglePauseMenu);
-  document.getElementById("btn-resume-game").addEventListener("click", togglePauseMenu);
+  on("btn-pause-open", "click", togglePauseMenu);
+  on("btn-dock-pause", "click", togglePauseMenu);
+  on("btn-resume-game", "click", togglePauseMenu);
 
   bindSegmentedGroup("pause-biome-select", (data) => {
     state.biome = data.biome;
@@ -1888,60 +1909,56 @@ function wireUIEvents() {
     state.skyMode = data.skymode;
   });
 
-  document.getElementById("btn-save-leave").addEventListener("click", () => {
+  on("btn-save-leave", "click", () => {
     localStorage.setItem(STORAGE_KEYS.SAVED_MATCH, JSON.stringify(state));
     state.paused = false;
-    document.getElementById("modal-pause").classList.add("hidden");
-    document.getElementById("saved-session-bar").classList.remove("hidden");
+    if ($("modal-pause")) $("modal-pause").classList.add("hidden");
+    if ($("saved-session-bar")) $("saved-session-bar").classList.remove("hidden");
     switchScreen("device");
   });
 
-  document.getElementById("btn-discard-leave").addEventListener("click", () => {
+  on("btn-discard-leave", "click", () => {
     state.paused = false;
-    document.getElementById("modal-pause").classList.add("hidden");
+    if ($("modal-pause")) $("modal-pause").classList.add("hidden");
     switchScreen("device");
   });
 
-  document.getElementById("btn-resume-saved").addEventListener("click", () => {
-    const raw = localStorage.getItem(STORAGE_KEYS.SAVED_MATCH);
-    if (!raw) return;
-    Object.assign(state, JSON.parse(raw));
-    renderSwatchPalettes();
-    buildBoardAndBiome();
-    updateHUD();
-    switchScreen("game");
+  on("btn-resume-saved", "click", () => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.SAVED_MATCH);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      sanitizeStateObject(parsed);
+      Object.assign(state, parsed);
+      renderSwatchPalettes();
+      buildBoardAndBiome();
+      updateHUD();
+      switchScreen("game");
+    } catch (_) {
+      localStorage.removeItem(STORAGE_KEYS.SAVED_MATCH);
+    }
   });
 
-  // Stats & Action Dock
-  document.getElementById("btn-hud-reset-round").addEventListener("click", () => {
-    initBoardState(false);
-  });
-  document
-    .getElementById("btn-hud-stats")
-    .addEventListener("click", () => openStatsModal());
-  document
-    .getElementById("btn-open-stats-init")
-    .addEventListener("click", () => openStatsModal());
-  document.getElementById("btn-close-stats").addEventListener("click", () => {
-    document.getElementById("modal-stats").classList.add("hidden");
+  on("btn-hud-reset-round", "click", () => initBoardState(false));
+  on("btn-hud-stats", "click", () => openStatsModal());
+  on("btn-open-stats-init", "click", () => openStatsModal());
+  on("btn-close-stats", "click", () => {
+    if ($("modal-stats")) $("modal-stats").classList.add("hidden");
   });
 
-  document.getElementById("btn-dock-cam").addEventListener("click", cycleCameraPOV);
-  document.getElementById("btn-dock-fast").addEventListener("click", () => {
+  on("btn-dock-cam", "click", cycleCameraPOV);
+  on("btn-dock-fast", "click", () => {
     state.skySpeed = Math.min(8.0, state.skySpeed + 0.5);
     updateHUD();
   });
-  document.getElementById("btn-dock-slow").addEventListener("click", () => {
+  on("btn-dock-slow", "click", () => {
     state.skySpeed = Math.max(0.2, state.skySpeed - 0.5);
     updateHUD();
   });
-  document
-    .getElementById("btn-dock-attack")
-    .addEventListener("click", triggerRandomAttackVisual);
+  on("btn-dock-attack", "click", triggerRandomAttackVisual);
 
-  // Keyboard Shortcuts: P to Pause, W/S Sky Speed, C Camera Mode
   window.addEventListener("keydown", (e) => {
-    if (e.target.tagName === "INPUT") return;
+    if (e.target && e.target.tagName === "INPUT") return;
     const key = e.key.toLowerCase();
     if (key === "p") {
       togglePauseMenu();
@@ -1974,7 +1991,6 @@ window.addEventListener("pointermove", (e) => {
   const dx = e.clientX - prevPointer.x;
   const dy = e.clientY - prevPointer.y;
   prevPointer = { x: e.clientX, y: e.clientY };
-  // Allow full 360° rotation in every camera mode
   targetCamTheta -= dx * 0.008;
   targetCamPhi = Math.max(0.12, Math.min(1.46, targetCamPhi - dy * 0.0068));
 });
@@ -2001,13 +2017,13 @@ window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  if (!document.getElementById("modal-stats").classList.contains("hidden")) {
+  if ($("modal-stats") && !$("modal-stats").classList.contains("hidden")) {
     drawStatsChart();
   }
 });
 
 // ----------------------------------------------------------------------------
-// 11. MAIN RENDER LOOP & CHRONOMETER
+// 11. MAIN RENDER LOOP & CHRONOMETER (STARTED IMMEDIATELY)
 // ----------------------------------------------------------------------------
 setInterval(() => {
   if (state.screen === "game" && !state.paused && !state.gameOver) {
@@ -2020,10 +2036,9 @@ let lastFrameTime = performance.now();
 
 function animate(now) {
   requestAnimationFrame(animate);
-  const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
+  const dt = Math.min(0.05, Math.max(0.001, (now - lastFrameTime) / 1000));
   lastFrameTime = now;
 
-  // 1. Sky Cycle & Atmospheric Fog Interpolation
   if (state.skyMode === "dynamic") {
     state.skyTime = (state.skyTime + dt * 0.025 * state.skySpeed) % 1;
   } else {
@@ -2040,24 +2055,20 @@ function animate(now) {
 
   sunLight.intensity = 0.28 + daylightFactor * 0.65;
   hemiLight.intensity = 0.45 + daylightFactor * 0.42;
-  const phaseEl = document.getElementById("hud-sky-phase");
-  if (phaseEl) phaseEl.textContent = daylightFactor > 0.5 ? "Daylight" : "Starlight Night";
+  setText("hud-sky-phase", daylightFactor > 0.5 ? "Daylight" : "Starlight Night");
 
-  // 2. Drift 3D Clouds
   cloudsGroup.children.forEach((cloud) => {
     cloud.userData.angle += dt * cloud.userData.speed * state.skySpeed;
     cloud.position.x = Math.cos(cloud.userData.angle) * cloud.userData.dist;
     cloud.position.z = Math.sin(cloud.userData.angle) * cloud.userData.dist;
   });
 
-  // 3. Animate Ambient Biome Particles
   ambientParticlesGroup.children.forEach((orb) => {
     orb.position.y =
       orb.userData.baseY +
       Math.sin(now * 0.002 * orb.userData.speed + orb.userData.phase) * 0.65;
   });
 
-  // 4. Sketch Paper 3D Pen Drawing Animation
   if (activePenAnim && activePenAnim.pen) {
     activePenAnim.progress += dt * 3.2;
     const p = activePenAnim.progress;
@@ -2074,7 +2085,6 @@ function animate(now) {
     }
   }
 
-  // 5. Random Arena Attack Visual Pulse
   if (attackPulseTime > 0) {
     attackPulseTime = Math.max(0, attackPulseTime - dt * 1.8);
     worldGroup.position.x = Math.sin(now * 0.08) * attackPulseTime * 0.24;
@@ -2084,7 +2094,6 @@ function animate(now) {
     worldGroup.rotation.set(0, 0, 0);
   }
 
-  // 6. Smooth 360° Orbit Interpolation Across All Named Camera Modes
   if (state.screen !== "game" && !isDraggingBoard) {
     targetCamTheta += dt * 0.22;
   }
@@ -2103,8 +2112,10 @@ function animate(now) {
   renderer.render(scene, camera);
 }
 
-// Initialize Scene & Application
+// 1. Build 3D World & Start Render Loop FIRST so Graphics Never Go Black
 buildClouds();
 initBoardState(true);
-wireUIEvents();
 requestAnimationFrame(animate);
+
+// 2. Wire UI Events Safely
+wireUIEvents();

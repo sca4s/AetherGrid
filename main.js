@@ -1,6 +1,6 @@
 /* ============================================================================
    AETHERGRID — 3D TACTICAL ALIGNMENT ENGINE
-   Procedural Web Audio + Three.js 360° Interactive Board + N×N Strategy Engine
+   Realistic Scenic 3D Biomes + Web Audio Synthesizer + N×N Alignment & Duels
    ============================================================================ */
 
 // ----------------------------------------------------------------------------
@@ -26,12 +26,12 @@ class ProceduralSoundEngine {
     const now = this.ctx.currentTime;
 
     if (isPaper) {
-      // Realistic Graphite Pencil / Pen Scratching on Sketch Paper
-      const bufferSize = this.ctx.sampleRate * 0.28;
+      // Realistic Graphite Pencil / Pen Sketch Stroke Sound
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.26);
       const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
       const data = noiseBuffer.getChannelData(0);
       for (let i = 0; i < bufferSize; i++) {
-        const strokeMod = Math.sin(i * 0.018) * 0.5 + 0.5;
+        const strokeMod = Math.sin(i * 0.02) * 0.5 + 0.5;
         data[i] = (Math.random() * 2 - 1) * strokeMod;
       }
       const noise = this.ctx.createBufferSource();
@@ -39,12 +39,12 @@ class ProceduralSoundEngine {
 
       const filter = this.ctx.createBiquadFilter();
       filter.type = "bandpass";
-      filter.frequency.setValueAtTime(player === 1 ? 1900 : 1450, now);
-      filter.Q.setValueAtTime(3.2, now);
+      filter.frequency.setValueAtTime(player === 1 ? 1850 : 1420, now);
+      filter.Q.setValueAtTime(3.0, now);
 
       const gain = this.ctx.createGain();
       gain.gain.setValueAtTime(0.22, now);
-      gain.gain.exponentialRampToValueAtTime(0.008, now + 0.27);
+      gain.gain.exponentialRampToValueAtTime(0.008, now + 0.25);
 
       noise.connect(filter);
       filter.connect(gain);
@@ -53,38 +53,37 @@ class ProceduralSoundEngine {
       return;
     }
 
-    // Tactile Matte Ceramic / Crystal Placement Chime
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = player === 1 ? "triangle" : "sine";
     const baseFreq = player === 1 ? 392 : 523.25;
-    osc.frequency.setValueAtTime(baseFreq * 0.8, now);
+    osc.frequency.setValueAtTime(baseFreq * 0.82, now);
     osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.25, now + 0.14);
 
-    gain.gain.setValueAtTime(0.2, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
 
     osc.connect(gain);
     gain.connect(this.ctx.destination);
     osc.start(now);
-    osc.stop(now + 0.19);
+    osc.stop(now + 0.18);
   }
 
   playWinFanfare() {
     this.ensureContext();
     const notes = [523.25, 659.25, 783.99, 1046.5];
     notes.forEach((freq, idx) => {
-      const now = this.ctx.currentTime + idx * 0.09;
+      const now = this.ctx.currentTime + idx * 0.085;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = "triangle";
       osc.frequency.setValueAtTime(freq, now);
       gain.gain.setValueAtTime(0.18, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.36);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
       osc.start(now);
-      osc.stop(now + 0.37);
+      osc.stop(now + 0.35);
     });
   }
 
@@ -94,14 +93,14 @@ class ProceduralSoundEngine {
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = "sine";
-    osc.frequency.setValueAtTime(240, now);
-    osc.frequency.exponentialRampToValueAtTime(620, now + 0.16);
-    gain.gain.setValueAtTime(0.14, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
+    osc.frequency.setValueAtTime(260, now);
+    osc.frequency.exponentialRampToValueAtTime(590, now + 0.15);
+    gain.gain.setValueAtTime(0.13, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
     osc.connect(gain);
     gain.connect(this.ctx.destination);
     osc.start(now);
-    osc.stop(now + 0.18);
+    osc.stop(now + 0.17);
   }
 
   playThemePlague() {
@@ -110,30 +109,14 @@ class ProceduralSoundEngine {
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = "sine";
-    osc.frequency.setValueAtTime(180, now);
-    osc.frequency.exponentialRampToValueAtTime(420, now + 0.45);
-    gain.gain.setValueAtTime(0.15, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.48);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.5);
-  }
-
-  playBirdJump() {
-    this.ensureContext();
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(680, now);
-    osc.frequency.exponentialRampToValueAtTime(1180, now + 0.12);
+    osc.frequency.setValueAtTime(190, now);
+    osc.frequency.exponentialRampToValueAtTime(430, now + 0.42);
     gain.gain.setValueAtTime(0.14, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
     osc.connect(gain);
     gain.connect(this.ctx.destination);
     osc.start(now);
-    osc.stop(now + 0.15);
+    osc.stop(now + 0.46);
   }
 
   playAttackPulse() {
@@ -142,14 +125,14 @@ class ProceduralSoundEngine {
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = "sawtooth";
-    osc.frequency.setValueAtTime(150, now);
-    osc.frequency.exponentialRampToValueAtTime(58, now + 0.35);
-    gain.gain.setValueAtTime(0.15, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+    osc.frequency.setValueAtTime(145, now);
+    osc.frequency.exponentialRampToValueAtTime(56, now + 0.32);
+    gain.gain.setValueAtTime(0.14, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
     osc.connect(gain);
     gain.connect(this.ctx.destination);
     osc.start(now);
-    osc.stop(now + 0.39);
+    osc.stop(now + 0.36);
   }
 }
 
@@ -170,12 +153,12 @@ const ATTACK_TYPES = [
   "Solar Tremor",
   "Zephyr Spin",
   "Aether Pulse",
-  "Gravity Hop",
+  "Gravity Wave",
   "Prism Quake"
 ];
 
 const state = {
-  screen: "device", // "device" | "customize" | "game"
+  screen: "device", // "device" | "mode" | "customize" | "game"
   paused: false,
   device: "desktop",
   theme: "light",
@@ -185,7 +168,7 @@ const state = {
   rule: "classic", // "classic" | "threepower"
   gridSize: 3,
   difficulty: "medium",
-  biome: "royal",
+  biome: "forest", // "forest" | "cyberpunk" | "parisian" | "desert" | "underwater" | "meadows" | "paper"
   shapeStyle: "xo",
   p1Name: "Astra",
   p2Name: "Aether AI",
@@ -194,18 +177,18 @@ const state = {
   boardColor: "#dcd3f8",
 
   // Sky Cycle
-  skyMode: "dynamic", // "dynamic" | "day" | "night"
-  skyStart: "day", // "day" | "night"
-  skyTime: 0.25, // 0..1 (0.25 = Noon, 0.75 = Midnight)
+  skyMode: "dynamic",
+  skyStart: "day",
+  skyTime: 0.25,
   skySpeed: 1.0,
 
   // Active Match State
   board: [],
   currentPlayer: 1,
   gameOver: false,
-  p1MarksQueue: [], // Tracks coordinates for Three Power Max Mode
+  p1MarksQueue: [],
   p2MarksQueue: [],
-  selectedRemovalIndex: null, // Used in Three Power Max Mode when 3 strikes are already placed
+  selectedRemovalIndex: null,
   p1Score: 0,
   p2Score: 0,
   elapsedSeconds: 0,
@@ -221,58 +204,78 @@ const state = {
   // Leaderboard cumulative record
   leaderboard: JSON.parse(
     localStorage.getItem(STORAGE_KEYS.LEADERBOARD) ||
-      '{"Astra":0,"Aether AI":0,"Player 2":0,"Ties":0}'
+      '{"Astra":2,"Aether AI":1,"Nova":1,"Ties":1}'
   )
 };
 
 // ----------------------------------------------------------------------------
-// 3. THREE.JS 3D SCENE, NON-REFLECTIVE MATTE MATERIALS, CLOUDS, BIRD & PENS
+// 3. THREE.JS SCENE, REALISTIC SCENIC BIOMES, CLOUDS & SKETCH PENS
 // ----------------------------------------------------------------------------
 const canvas = document.getElementById("game-canvas");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0xdfd8f7, 0.014);
+
 const camera = new THREE.PerspectiveCamera(
-  45,
+  44,
   window.innerWidth / window.innerHeight,
   0.1,
-  250
+  300
 );
 
-// Lighting (Soft pastel ambient + directional without glossy specular reflections)
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.78);
-scene.add(ambientLight);
+// Balanced Atmospheric Lighting (Non-reflective matte surfaces with soft shadows)
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0xb8b0d8, 0.72);
+scene.add(hemiLight);
 
-const sunLight = new THREE.DirectionalLight(0xfff6e5, 0.65);
-sunLight.position.set(12, 22, 14);
+const sunLight = new THREE.DirectionalLight(0xfff7e8, 0.72);
+sunLight.position.set(18, 28, 16);
 sunLight.castShadow = true;
+sunLight.shadow.mapSize.width = 1024;
+sunLight.shadow.mapSize.height = 1024;
 scene.add(sunLight);
 
-// Scene Groups
+// Scene Hierarchy
 const worldGroup = new THREE.Group();
 const boardGroup = new THREE.Group();
 const cellsGroup = new THREE.Group();
 const marksGroup = new THREE.Group();
 const biomePropsGroup = new THREE.Group();
+const ambientParticlesGroup = new THREE.Group();
 const cloudsGroup = new THREE.Group();
 const pensGroup = new THREE.Group();
-worldGroup.add(boardGroup, cellsGroup, marksGroup, biomePropsGroup, pensGroup);
+
+worldGroup.add(
+  boardGroup,
+  cellsGroup,
+  marksGroup,
+  biomePropsGroup,
+  ambientParticlesGroup,
+  pensGroup
+);
 scene.add(worldGroup, cloudsGroup);
 
 // Camera Orbit & POV Controller
-const camModes = ["Orbit 360°", "Top-Down Tactical", "Isometric", "Contender 1 POV", "Contender 2 POV"];
+const camModes = [
+  "Orbit 360°",
+  "Top-Down Tactical",
+  "Scenic Vista",
+  "Contender 1 POV",
+  "Contender 2 POV"
+];
 let camModeIndex = 0;
-let camTheta = 0.55;
-let camPhi = 0.92;
-let camRadius = 15.5;
+let camTheta = 0.62;
+let camPhi = 1.02;
+let camRadius = 15.2;
 let isDraggingBoard = false;
 let prevPointer = { x: 0, y: 0 };
 let pointerDownPos = { x: 0, y: 0 };
 
-// Helper for strictly non-reflective matte pastel material
+// Strictly Non-Reflective Matte Material Helper
 function createMatteMaterial(hexColor, opacity = 1) {
   return new THREE.MeshLambertMaterial({
     color: new THREE.Color(hexColor),
@@ -284,63 +287,30 @@ function createMatteMaterial(hexColor, opacity = 1) {
 // 3D Volumetric Pastel Clouds
 function buildClouds() {
   cloudsGroup.clear();
-  const cloudMat = createMatteMaterial("#ffffff", 0.88);
-  for (let i = 0; i < 10; i++) {
+  const cloudMat = createMatteMaterial("#ffffff", 0.86);
+  for (let i = 0; i < 12; i++) {
     const cluster = new THREE.Group();
-    const puffs = 3 + (i % 3);
+    const puffs = 4 + (i % 3);
     for (let p = 0; p < puffs; p++) {
-      const geo = new THREE.SphereGeometry(1.1 + (p % 2) * 0.45, 12, 12);
+      const geo = new THREE.SphereGeometry(1.3 + (p % 2) * 0.55, 14, 14);
       const mesh = new THREE.Mesh(geo, cloudMat);
-      mesh.position.set(p * 1.1 - 1.1, (p % 2) * 0.3, (p % 3) * 0.35);
-      mesh.scale.y = 0.62;
+      mesh.position.set(p * 1.25 - 1.5, (p % 2) * 0.35, (p % 3) * 0.45);
+      mesh.scale.y = 0.58;
       cluster.add(mesh);
     }
-    const angle = (i / 10) * Math.PI * 2;
-    const dist = 16 + (i % 3) * 4;
-    cluster.position.set(Math.cos(angle) * dist, 7.5 + (i % 3) * 1.6, Math.sin(angle) * dist);
-    cluster.userData = { angle, dist, speed: 0.04 + (i % 4) * 0.012 };
+    const angle = (i / 12) * Math.PI * 2;
+    const dist = 24 + (i % 3) * 6;
+    cluster.position.set(
+      Math.cos(angle) * dist,
+      9.5 + (i % 3) * 2.2,
+      Math.sin(angle) * dist
+    );
+    cluster.userData = { angle, dist, speed: 0.025 + (i % 4) * 0.008 };
     cloudsGroup.add(cluster);
   }
 }
 
-// Autonomous 3D Bird (Moves on its own + Up Arrow Jump)
-const birdGroup = new THREE.Group();
-let birdAngle = 0;
-let birdJumpY = 0;
-let birdJumpVel = 0;
-
-function buildAutonomousBird() {
-  birdGroup.clear();
-  const bodyMat = createMatteMaterial("#ffd166");
-  const wingMat = createMatteMaterial("#ff9f89");
-  const beakMat = createMatteMaterial("#ef476f");
-
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.48, 0.85), bodyMat);
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.45, 0.48), bodyMat);
-  head.position.set(0, 0.32, 0.35);
-
-  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.32, 4), beakMat);
-  beak.rotation.x = Math.PI / 2;
-  beak.position.set(0, 0.32, 0.68);
-
-  const leftWing = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.1, 0.5), wingMat);
-  leftWing.position.set(-0.5, 0.08, 0);
-  const rightWing = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.1, 0.5), wingMat);
-  rightWing.position.set(0.5, 0.08, 0);
-
-  birdGroup.add(body, head, beak, leftWing, rightWing);
-  birdGroup.userData = { leftWing, rightWing };
-  worldGroup.add(birdGroup);
-}
-
-function triggerBirdJump() {
-  if (birdJumpY <= 0.05) {
-    birdJumpVel = 0.22;
-    sfx.playBirdJump();
-  }
-}
-
-// 2 Animated 3D Pens / Pencils for "Sketch Paper" Biome
+// 2 Animated 3D Pens / Pencils for Sketch Paper Biome
 let pen1Mesh = null;
 let pen2Mesh = null;
 let activePenAnim = null;
@@ -350,13 +320,13 @@ function buildSketchPens() {
   const makePen = (bodyColor, tipColor, restX) => {
     const pen = new THREE.Group();
     const shaft = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.16, 0.16, 3.2, 12),
+      new THREE.CylinderGeometry(0.15, 0.15, 3.2, 14),
       createMatteMaterial(bodyColor)
     );
     shaft.position.y = 2.0;
 
     const woodCone = new THREE.Mesh(
-      new THREE.ConeGeometry(0.16, 0.55, 12),
+      new THREE.ConeGeometry(0.15, 0.55, 14),
       createMatteMaterial("#f3d5b5")
     );
     woodCone.rotation.x = Math.PI;
@@ -370,55 +340,61 @@ function buildSketchPens() {
     graphite.position.y = -0.08;
 
     pen.add(shaft, woodCone, graphite);
-    pen.rotation.z = restX < 0 ? -0.28 : 0.28;
-    pen.position.set(restX, 1.2, -3.5);
-    pen.userData = { restPos: new THREE.Vector3(restX, 1.2, -3.5) };
+    pen.rotation.z = restX < 0 ? -0.26 : 0.26;
+    pen.position.set(restX, 1.15, -3.6);
+    pen.userData = { restPos: new THREE.Vector3(restX, 1.15, -3.6) };
     return pen;
   };
 
-  pen1Mesh = makePen(state.p1Color, state.p1Color, -5.6);
-  pen2Mesh = makePen(state.p2Color, state.p2Color, 5.6);
+  pen1Mesh = makePen(state.p1Color, state.p1Color, -5.5);
+  pen2Mesh = makePen(state.p2Color, state.p2Color, 5.5);
   pensGroup.add(pen1Mesh, pen2Mesh);
   pensGroup.visible = state.biome === "paper";
 }
 
 // ----------------------------------------------------------------------------
-// 4. BIOME ENVIRONMENT & N×N BOARD CONSTRUCTION
+// 4. REALISTIC SCENIC 3D BIOMES BEHIND & AROUND THE BOARD
 // ----------------------------------------------------------------------------
 const BIOME_PALETTES = {
-  royal: {
-    daySky: "#e6defc",
-    nightSky: "#1d1636",
-    pedestal: "#c5b4f0",
-    gridLine: "#5e4b93"
+  forest: {
+    daySky: "#d8f0e4",
+    nightSky: "#11221f",
+    pedestal: "#8c6d53",
+    gridLine: "#3b5949"
   },
   cyberpunk: {
-    daySky: "#d7f4f7",
-    nightSky: "#121329",
-    pedestal: "#8ee3ef",
+    daySky: "#d6eef8",
+    nightSky: "#111026",
+    pedestal: "#5c6484",
     gridLine: "#ff6b9d"
   },
-  angelic: {
-    daySky: "#f4f8ff",
-    nightSky: "#232946",
-    pedestal: "#fff7d6",
-    gridLine: "#9ab3f5"
+  parisian: {
+    daySky: "#f2e8f7",
+    nightSky: "#1e1a34",
+    pedestal: "#dfd5c8",
+    gridLine: "#4f435a"
   },
-  beach: {
-    daySky: "#dff6f0",
-    nightSky: "#172a3a",
-    pedestal: "#f7e3af",
-    gridLine: "#56b4a9"
+  desert: {
+    daySky: "#fae5c8",
+    nightSky: "#291c2e",
+    pedestal: "#e2a97e",
+    gridLine: "#8a4f38"
   },
-  cafe: {
-    daySky: "#f5ebe0",
-    nightSky: "#261c18",
-    pedestal: "#d5bdaf",
-    gridLine: "#6f4e37"
+  underwater: {
+    daySky: "#bce8f0",
+    nightSky: "#0c2233",
+    pedestal: "#76b8c4",
+    gridLine: "#296878"
+  },
+  meadows: {
+    daySky: "#e0f2fe",
+    nightSky: "#16243b",
+    pedestal: "#a7d79b",
+    gridLine: "#436b47"
   },
   paper: {
-    daySky: "#f8f6f0",
-    nightSky: "#25262b",
+    daySky: "#f7f4eb",
+    nightSky: "#232429",
     pedestal: "#fdfbf7",
     gridLine: "#4a5568"
   }
@@ -428,53 +404,52 @@ function buildBoardAndBiome() {
   boardGroup.clear();
   cellsGroup.clear();
   biomePropsGroup.clear();
+  ambientParticlesGroup.clear();
 
-  const palette = BIOME_PALETTES[state.biome] || BIOME_PALETTES.royal;
+  const palette = BIOME_PALETTES[state.biome] || BIOME_PALETTES.forest;
   const N = state.gridSize;
-  const boardSpan = 7.8;
+  const boardSpan = 7.6;
   const cellSize = boardSpan / N;
 
-  // Main Table / Board Base
+  // Main Board Table
   const baseColor = state.biome === "paper" ? "#fdfbf7" : state.boardColor;
-  const baseHeight = state.biome === "paper" ? 0.14 : 0.65;
-  const baseGeo = new THREE.BoxGeometry(boardSpan + 1.1, baseHeight, boardSpan + 1.1);
+  const baseHeight = state.biome === "paper" ? 0.14 : 0.62;
+  const baseGeo = new THREE.BoxGeometry(boardSpan + 1.0, baseHeight, boardSpan + 1.0);
   const baseMesh = new THREE.Mesh(baseGeo, createMatteMaterial(baseColor));
   baseMesh.position.y = -baseHeight / 2;
   baseMesh.receiveShadow = true;
   boardGroup.add(baseMesh);
 
-  // Pedestal Pillar beneath Table
-  const pillarGeo = new THREE.CylinderGeometry(2.8, 3.6, 1.5, 24);
+  // Pedestal Base under Table
+  const pillarGeo = new THREE.CylinderGeometry(2.6, 3.4, 1.8, 24);
   const pillarMesh = new THREE.Mesh(pillarGeo, createMatteMaterial(palette.pedestal));
-  pillarMesh.position.y = -baseHeight - 0.75;
+  pillarMesh.position.y = -baseHeight - 0.9;
+  pillarMesh.receiveShadow = true;
   boardGroup.add(pillarMesh);
 
-  // Grid Lines (Crooked hand-drawn segments in Sketch Paper mode, crisp bars otherwise)
+  // Grid Lines (Crooked hand-drawn segments in Sketch Paper mode, sculpted bars otherwise)
   const lineMat = createMatteMaterial(palette.gridLine);
   const half = boardSpan / 2;
 
   for (let i = 1; i < N; i++) {
     const offset = -half + i * cellSize;
     if (state.biome === "paper") {
-      // Crooked hand-drawn multi-segment pencil lines
       const segments = 12;
       for (let s = 0; s < segments; s++) {
         const t1 = -half + (s / segments) * boardSpan;
         const t2 = -half + ((s + 1) / segments) * boardSpan;
-        const jitter1 = (Math.sin(s * 2.3 + i) * 0.06);
-        const jitter2 = (Math.cos((s + 1) * 1.9 + i) * 0.06);
+        const j1 = Math.sin(s * 2.3 + i) * 0.055;
+        const j2 = Math.cos((s + 1) * 1.9 + i) * 0.055;
 
-        // Vertical crooked segment
-        const vLen = Math.hypot(jitter2 - jitter1, t2 - t1);
+        const vLen = Math.hypot(j2 - j1, t2 - t1);
         const vSeg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, vLen), lineMat);
-        vSeg.position.set(offset + (jitter1 + jitter2) / 2, 0.03, (t1 + t2) / 2);
-        vSeg.rotation.y = Math.atan2(jitter2 - jitter1, t2 - t1);
+        vSeg.position.set(offset + (j1 + j2) / 2, 0.03, (t1 + t2) / 2);
+        vSeg.rotation.y = Math.atan2(j2 - j1, t2 - t1);
         boardGroup.add(vSeg);
 
-        // Horizontal crooked segment
         const hSeg = new THREE.Mesh(new THREE.BoxGeometry(vLen, 0.04, 0.06), lineMat);
-        hSeg.position.set((t1 + t2) / 2, 0.03, offset + (jitter1 + jitter2) / 2);
-        hSeg.rotation.y = Math.atan2(jitter2 - jitter1, t2 - t1);
+        hSeg.position.set((t1 + t2) / 2, 0.03, offset + (j1 + j2) / 2);
+        hSeg.rotation.y = Math.atan2(j2 - j1, t2 - t1);
         boardGroup.add(hSeg);
       }
     } else {
@@ -492,7 +467,7 @@ function buildBoardAndBiome() {
       const x = -half + c * cellSize + cellSize / 2;
       const z = -half + r * cellSize + cellSize / 2;
       const tileGeo = new THREE.BoxGeometry(cellSize * 0.88, 0.1, cellSize * 0.88);
-      const tileMat = createMatteMaterial("#ffffff", 0.16);
+      const tileMat = createMatteMaterial("#ffffff", 0.15);
       const tile = new THREE.Mesh(tileGeo, tileMat);
       tile.position.set(x, 0.05, z);
       tile.userData = { row: r, col: c, x, z, cellSize };
@@ -500,64 +475,239 @@ function buildBoardAndBiome() {
     }
   }
 
-  // Biome-Specific 3D Props
-  buildBiomeDecorations(palette);
+  buildScenicBiomeWorld(state.biome);
   buildSketchPens();
   rebuildAllMarks();
 }
 
-function buildBiomeDecorations(palette) {
-  if (state.biome === "royal") {
-    for (let i = 0; i < 4; i++) {
-      const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
-      const col = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.35, 0.42, 4.2, 12),
-        createMatteMaterial("#e8dff5")
+function buildScenicBiomeWorld(biome) {
+  if (biome === "forest") {
+    // Mossy Forest Island, Multi-Tier Pine Trees, Rocks & Fireflies
+    const ground = new THREE.Mesh(
+      new THREE.CylinderGeometry(26, 28, 1.4, 36),
+      createMatteMaterial("#95c9a3")
+    );
+    ground.position.y = -2.4;
+    biomePropsGroup.add(ground);
+
+    for (let i = 0; i < 24; i++) {
+      const angle = (i / 24) * Math.PI * 2 + (i % 3) * 0.12;
+      const radius = 11.5 + (i % 4) * 3.2;
+      const tree = new THREE.Group();
+
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.22, 0.35, 2.2, 8),
+        createMatteMaterial("#7f5539")
       );
-      col.position.set(Math.cos(angle) * 6.5, 0.8, Math.sin(angle) * 6.5);
-      const crown = new THREE.Mesh(
-        new THREE.OctahedronGeometry(0.45),
-        createMatteMaterial("#ffd166")
+      trunk.position.y = -0.8;
+
+      const c1 = new THREE.Mesh(
+        new THREE.ConeGeometry(1.5, 2.8, 9),
+        createMatteMaterial("#529471")
       );
-      crown.position.set(Math.cos(angle) * 6.5, 3.3, Math.sin(angle) * 6.5);
-      biomePropsGroup.add(col, crown);
+      c1.position.y = 1.1;
+      const c2 = new THREE.Mesh(
+        new THREE.ConeGeometry(1.15, 2.3, 9),
+        createMatteMaterial("#6ab089")
+      );
+      c2.position.y = 2.4;
+
+      tree.add(trunk, c1, c2);
+      const s = 0.85 + (i % 3) * 0.25;
+      tree.scale.setScalar(s);
+      tree.position.set(Math.cos(angle) * radius, -1.2, Math.sin(angle) * radius);
+      biomePropsGroup.add(tree);
     }
-  } else if (state.biome === "cyberpunk") {
-    for (let i = 0; i < 6; i++) {
-      const angle = (i / 6) * Math.PI * 2;
-      const holo = new THREE.Mesh(
-        new THREE.TorusGeometry(0.55, 0.08, 8, 20),
-        createMatteMaterial(i % 2 === 0 ? "#ff6b9d" : "#72efdd")
+
+    spawnAmbientParticles("#f9f871", 28, 12);
+  } else if (biome === "cyberpunk") {
+    // Rooftop Terrace Deck, Glass/Neon Balustrade & Surrounding Skyline Skyscrapers
+    const terrace = new THREE.Mesh(
+      new THREE.BoxGeometry(15.5, 1.2, 15.5),
+      createMatteMaterial("#2b2d42")
+    );
+    terrace.position.y = -2.3;
+    biomePropsGroup.add(terrace);
+
+    // Neon Perimeter Railings
+    const railColor = createMatteMaterial("#72efdd");
+    const nRail = new THREE.Mesh(new THREE.BoxGeometry(15.2, 0.15, 0.15), railColor);
+    nRail.position.set(0, -1.0, -7.5);
+    const sRail = nRail.clone();
+    sRail.position.z = 7.5;
+    const eRail = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 15.2), railColor);
+    eRail.position.set(7.5, -1.0, 0);
+    const wRail = eRail.clone();
+    wRail.position.x = -7.5;
+    biomePropsGroup.add(nRail, sRail, eRail, wRail);
+
+    // City Skyline Towers around the Terrace
+    for (let i = 0; i < 28; i++) {
+      const angle = (i / 28) * Math.PI * 2;
+      const dist = 18 + (i % 3) * 5.5;
+      const h = 10 + (i % 5) * 4.5;
+      const w = 2.4 + (i % 3) * 0.9;
+      const tower = new THREE.Mesh(
+        new THREE.BoxGeometry(w, h, w),
+        createMatteMaterial(i % 2 === 0 ? "#3a345c" : "#283252")
       );
-      holo.position.set(Math.cos(angle) * 6.4, 1.2 + (i % 2), Math.sin(angle) * 6.4);
-      biomePropsGroup.add(holo);
+      tower.position.set(Math.cos(angle) * dist, h / 2 - 9, Math.sin(angle) * dist);
+
+      // Glowing Neon Roof Trim
+      const cap = new THREE.Mesh(
+        new THREE.BoxGeometry(w + 0.15, 0.28, w + 0.15),
+        createMatteMaterial(i % 3 === 0 ? "#ff6b9d" : "#72efdd")
+      );
+      cap.position.set(tower.position.x, tower.position.y + h / 2 + 0.15, tower.position.z);
+      biomePropsGroup.add(tower, cap);
     }
-  } else if (state.biome === "angelic") {
-    const halo = new THREE.Mesh(
-      new THREE.TorusGeometry(5.8, 0.12, 12, 48),
-      createMatteMaterial("#ffe699")
+
+    spawnAmbientParticles("#ff6b9d", 24, 15);
+  } else if (biome === "parisian") {
+    // Haussmann Stone Terrace, Ornate Iron Balcony Railings, Lamps & Distant Eiffel Tower
+    const stoneDeck = new THREE.Mesh(
+      new THREE.CylinderGeometry(11.5, 12.2, 1.4, 32),
+      createMatteMaterial("#e6dfd5")
     );
-    halo.rotation.x = Math.PI / 2;
-    halo.position.y = 2.6;
-    biomePropsGroup.add(halo);
-  } else if (state.biome === "beach") {
-    const water = new THREE.Mesh(
-      new THREE.CylinderGeometry(8.5, 8.5, 0.25, 32),
-      createMatteMaterial("#80ed99", 0.55)
+    stoneDeck.position.y = -2.3;
+    biomePropsGroup.add(stoneDeck);
+
+    // Wrought-iron perimeter posts & warm streetlamps
+    const ironMat = createMatteMaterial("#3d3a45");
+    const lampMat = createMatteMaterial("#ffe599");
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 1.4, 8), ironMat);
+      post.position.set(Math.cos(a) * 10.8, -1.0, Math.sin(a) * 10.8);
+      biomePropsGroup.add(post);
+
+      if (i % 4 === 0) {
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 4.2, 10), ironMat);
+        pole.position.set(Math.cos(a) * 10.2, 0.4, Math.sin(a) * 10.2);
+        const globe = new THREE.Mesh(new THREE.SphereGeometry(0.45, 14, 14), lampMat);
+        globe.position.set(Math.cos(a) * 10.2, 2.65, Math.sin(a) * 10.2);
+        biomePropsGroup.add(pole, globe);
+      }
+    }
+
+    // Distant Eiffel Tower Silhouette behind the Board
+    const eiffel = new THREE.Group();
+    const towerMat = createMatteMaterial("#7f7589");
+    const tier1 = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 3.6, 6, 4), towerMat);
+    tier1.position.y = 1;
+    const tier2 = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.75, 5.5, 4), towerMat);
+    tier2.position.y = 6.5;
+    const spire = new THREE.Mesh(new THREE.ConeGeometry(0.85, 7.5, 4), towerMat);
+    spire.position.y = 12.8;
+    eiffel.add(tier1, tier2, spire);
+    eiffel.rotation.y = Math.PI / 4;
+    eiffel.position.set(0, -3.5, -24);
+    biomePropsGroup.add(eiffel);
+  } else if (biome === "desert") {
+    // Rolling Sand Dunes, Sandstone Mesas, Monument Arch & Cacti
+    const sandFloor = new THREE.Mesh(
+      new THREE.CylinderGeometry(28, 30, 1.6, 36),
+      createMatteMaterial("#f4cba0")
     );
-    water.position.y = -0.9;
-    biomePropsGroup.add(water);
-  } else if (state.biome === "cafe") {
-    const mug = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.65, 0.55, 1.2, 16),
-      createMatteMaterial("#f4a261")
+    sandFloor.position.y = -2.5;
+    biomePropsGroup.add(sandFloor);
+
+    // Sandstone Arch & Mesas
+    const arch = new THREE.Mesh(
+      new THREE.TorusGeometry(5.5, 1.1, 10, 24, Math.PI),
+      createMatteMaterial("#d98a5f")
     );
-    mug.position.set(-5.5, 0.6, -4.2);
-    biomePropsGroup.add(mug);
+    arch.position.set(-8, -2.0, -16);
+    biomePropsGroup.add(arch);
+
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * Math.PI * 2 + 0.3;
+      const dist = 13 + (i % 3) * 4;
+      const cactus = new THREE.Group();
+      const cMat = createMatteMaterial("#6a994e");
+      const mainStem = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 2.8, 10), cMat);
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 1.2, 8), cMat);
+      arm.position.set(0.45, 0.3, 0);
+      arm.rotation.z = -Math.PI / 4;
+      cactus.add(mainStem, arm);
+      cactus.position.set(Math.cos(a) * dist, -0.6, Math.sin(a) * dist);
+      biomePropsGroup.add(cactus);
+    }
+  } else if (biome === "underwater") {
+    // Ocean Seabed, Coral Reef Clusters, Kelp Stalks & Rising Bubbles
+    const seabed = new THREE.Mesh(
+      new THREE.CylinderGeometry(28, 30, 1.5, 36),
+      createMatteMaterial("#d8e2dc")
+    );
+    seabed.position.y = -2.5;
+    biomePropsGroup.add(seabed);
+
+    const coralColors = ["#ff8fa3", "#ffb703", "#a8dadc", "#cdb4db"];
+    for (let i = 0; i < 18; i++) {
+      const a = (i / 18) * Math.PI * 2;
+      const dist = 10.5 + (i % 4) * 3;
+      const coral = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(0.95 + (i % 3) * 0.4),
+        createMatteMaterial(coralColors[i % coralColors.length])
+      );
+      coral.position.set(Math.cos(a) * dist, -1.3, Math.sin(a) * dist);
+      biomePropsGroup.add(coral);
+    }
+
+    spawnAmbientParticles("#ffffff", 34, 14);
+  } else if (biome === "meadows") {
+    // Rolling Pastel Hills, Distant Snow-Capped Mountains & Wildflowers
+    const meadowFloor = new THREE.Mesh(
+      new THREE.CylinderGeometry(28, 30, 1.5, 36),
+      createMatteMaterial("#b5e48c")
+    );
+    meadowFloor.position.y = -2.5;
+    biomePropsGroup.add(meadowFloor);
+
+    // Distant Alpine Peaks
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * Math.PI * 2;
+      const dist = 23;
+      const peak = new THREE.Mesh(
+        new THREE.ConeGeometry(5.2, 11, 7),
+        createMatteMaterial("#90a4ae")
+      );
+      peak.position.set(Math.cos(a) * dist, 2.5, Math.sin(a) * dist);
+      const snow = new THREE.Mesh(
+        new THREE.ConeGeometry(2.4, 4.8, 7),
+        createMatteMaterial("#ffffff")
+      );
+      snow.position.set(Math.cos(a) * dist, 5.7, Math.sin(a) * dist);
+      biomePropsGroup.add(peak, snow);
+    }
+  } else if (biome === "paper") {
+    // Drafting Studio Desk beneath the Sketchpad
+    const desk = new THREE.Mesh(
+      new THREE.BoxGeometry(22, 0.8, 18),
+      createMatteMaterial("#d6ccc2")
+    );
+    desk.position.y = -1.9;
+    biomePropsGroup.add(desk);
   }
 }
 
-// Create 3D Striker Mesh (Supports X/O, Geometric Shapes, and Crooked Paper Sketches)
+function spawnAmbientParticles(hexColor, count, radius) {
+  const mat = createMatteMaterial(hexColor, 0.78);
+  for (let i = 0; i < count; i++) {
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.12 + (i % 3) * 0.05, 8, 8), mat);
+    const a = (i / count) * Math.PI * 2;
+    const r = 6 + (i % 5) * (radius / 5);
+    orb.position.set(Math.cos(a) * r, (i % 6) * 1.1 - 0.5, Math.sin(a) * r);
+    orb.userData = {
+      baseY: orb.position.y,
+      phase: i * 0.7,
+      speed: 0.8 + (i % 4) * 0.3
+    };
+    ambientParticlesGroup.add(orb);
+  }
+}
+
+// Create 3D Striker Mesh
 function createStrikerMesh(player, cellData, isSelectedForRemoval = false) {
   const group = new THREE.Group();
   const colorHex = isSelectedForRemoval
@@ -566,10 +716,9 @@ function createStrikerMesh(player, cellData, isSelectedForRemoval = false) {
     ? state.p1Color
     : state.p2Color;
   const mat = createMatteMaterial(colorHex);
-  const scale = (cellData.cellSize / 2.6) * 0.85;
+  const scale = (cellData.cellSize / 2.55) * 0.84;
 
   if (state.biome === "paper") {
-    // Hand-drawn crooked stroke appearance on Sketch Paper
     if (player === 1) {
       const b1 = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.08, 0.14), mat);
       b1.rotation.y = Math.PI / 4 + 0.08;
@@ -662,7 +811,7 @@ function initBoardState(resetScores = false) {
     state.duelRound = 1;
     state.duelHistory = [];
     if (state.mode === "ai-duel") {
-      state.duelTotalRounds = 15; // 3 rounds × 5 difficulties
+      state.duelTotalRounds = 15;
       state.difficulty = DIFF_ORDER[0];
     } else if (state.mode === "pvp-duel") {
       state.duelTotalRounds = 3;
@@ -675,11 +824,9 @@ function initBoardState(resetScores = false) {
   updateHUD();
 }
 
-// Check if `player` has N strikes in a straight line (Vertical, Horizontal, or Diagonal)
 function checkWinner(board, player) {
   const N = board.length;
 
-  // Rows
   for (let r = 0; r < N; r++) {
     let win = true;
     for (let c = 0; c < N; c++) {
@@ -691,7 +838,6 @@ function checkWinner(board, player) {
     if (win) return true;
   }
 
-  // Columns
   for (let c = 0; c < N; c++) {
     let win = true;
     for (let r = 0; r < N; r++) {
@@ -703,7 +849,6 @@ function checkWinner(board, player) {
     if (win) return true;
   }
 
-  // Main Diagonal
   let diag1 = true;
   for (let i = 0; i < N; i++) {
     if (board[i][i] !== player) {
@@ -713,7 +858,6 @@ function checkWinner(board, player) {
   }
   if (diag1) return true;
 
-  // Anti-Diagonal
   let diag2 = true;
   for (let i = 0; i < N; i++) {
     if (board[i][N - 1 - i] !== player) {
@@ -728,7 +872,6 @@ function isBoardFull(board) {
   return board.every((row) => row.every((cell) => cell !== 0));
 }
 
-// Handle Cell Click / Tap (Supports both Standard & Three Power Max Mode)
 function handleCellInteraction(row, col) {
   if (state.screen !== "game" || state.paused || state.gameOver) return;
   const isAITurn =
@@ -743,10 +886,8 @@ function executeTurnMove(row, col) {
   const queue = player === 1 ? state.p1MarksQueue : state.p2MarksQueue;
   const cellVal = state.board[row][col];
 
-  // THREE POWER MAX MODE LOGIC:
-  // Strictly max 3 strikes per player. For the 4th strike, the player must remove one of their own 3 strikes first.
+  // Three Power Max Mode: Max 3 active strikes per player
   if (state.rule === "threepower" && queue.length >= 3) {
-    // Clicking one of the player's own 3 marks selects it for removal
     if (cellVal === player) {
       const idx = queue.findIndex((m) => m.r === row && m.c === col);
       if (idx !== -1) {
@@ -758,16 +899,14 @@ function executeTurnMove(row, col) {
       return;
     }
 
-    // Cannot remove opponent's strikes
     if (cellVal !== 0 && cellVal !== player) {
-      updateTurnBanner("Cannot remove opponent's strike! Select one of your own 3 marks first.");
+      updateTurnBanner("Select one of your own 3 marks first — cannot remove opponent's strike.");
       return;
     }
 
-    // If clicking an empty cell to place the 4th strike:
     if (cellVal === 0) {
       if (state.selectedRemovalIndex === null) {
-        updateTurnBanner("3 strikes active! Tap 1 of your own marks to remove before placing the 4th.");
+        updateTurnBanner("3 strikes active! Tap 1 of your own marks to relocate.");
         return;
       }
       const removed = queue.splice(state.selectedRemovalIndex, 1)[0];
@@ -775,15 +914,12 @@ function executeTurnMove(row, col) {
       state.selectedRemovalIndex = null;
     }
   } else {
-    // Standard placement requires an empty cell
     if (cellVal !== 0) return;
   }
 
-  // Place the strike
   state.board[row][col] = player;
   queue.push({ r: row, c: col });
 
-  // Trigger 3D Pen Drawing Animation if in Sketch Paper Biome
   const tile = cellsGroup.children.find(
     (t) => t.userData.row === row && t.userData.col === col
   );
@@ -797,47 +933,40 @@ function executeTurnMove(row, col) {
 
   sfx.playPlace(state.biome === "paper", player);
 
-  // Random Arena Attack visual shake on every 3rd move
   if ((state.p1MarksQueue.length + state.p2MarksQueue.length) % 3 === 0) {
     triggerRandomAttackVisual();
   }
 
   rebuildAllMarks();
 
-  // Check Victory
   if (checkWinner(state.board, player)) {
     concludeRound(player);
     return;
   }
 
-  // Check Draw (Only possible in Standard mode)
   if (state.rule === "classic" && isBoardFull(state.board)) {
     concludeRound(0);
     return;
   }
 
-  // Switch Turn
   state.currentPlayer = player === 1 ? 2 : 1;
   updateHUD();
 
-  // Trigger Automated AI if applicable
   if (
     !state.gameOver &&
     (state.mode === "ai" || state.mode === "ai-duel") &&
     state.currentPlayer === 2
   ) {
-    setTimeout(performAutomatedAIMove, 460);
+    setTimeout(performAutomatedAIMove, 450);
   }
 }
 
-// Automated AI Engine (Easy -> Medium -> Hard -> Hardcore -> Impossible + Three Power Max aware)
 function performAutomatedAIMove() {
   if (state.gameOver || state.paused || state.screen !== "game") return;
   const N = state.gridSize;
 
-  // In Three Power Max Mode, if AI already has 3 marks, pick the least strategic one to relocate
   if (state.rule === "threepower" && state.p2MarksQueue.length >= 3) {
-    state.selectedRemovalIndex = chooseAIMarkToRemove();
+    state.selectedRemovalIndex = 0;
   }
 
   const emptyCells = [];
@@ -868,15 +997,9 @@ function performAutomatedAIMove() {
   executeTurnMove(chosen.r, chosen.c);
 }
 
-function chooseAIMarkToRemove() {
-  // Prefer removing a mark that doesn't immediately break a 2-in-a-row threat
-  return 0;
-}
-
 function findBestTacticalMove(emptyCells) {
   const N = state.gridSize;
 
-  // 1. Immediate Winning Strike for AI (Player 2)
   for (const cell of emptyCells) {
     state.board[cell.r][cell.c] = 2;
     const wins = checkWinner(state.board, 2);
@@ -884,7 +1007,6 @@ function findBestTacticalMove(emptyCells) {
     if (wins) return cell;
   }
 
-  // 2. Immediate Block against Player 1
   for (const cell of emptyCells) {
     state.board[cell.r][cell.c] = 1;
     const p1Wins = checkWinner(state.board, 1);
@@ -892,7 +1014,6 @@ function findBestTacticalMove(emptyCells) {
     if (p1Wins) return cell;
   }
 
-  // 3. Heuristic Line Scoring for N×N boards
   let bestScore = -Infinity;
   let bestCell = emptyCells[0];
 
@@ -968,7 +1089,6 @@ function concludeRound(winner) {
     p2Score: state.p2Score
   });
 
-  // Update High Score & Best Time in LocalStorage
   const maxSessionScore = Math.max(state.p1Score, state.p2Score);
   if (maxSessionScore > state.highScore) {
     state.highScore = maxSessionScore;
@@ -981,28 +1101,26 @@ function concludeRound(winner) {
   localStorage.setItem(STORAGE_KEYS.LEADERBOARD, JSON.stringify(state.leaderboard));
   updateHUD();
 
-  // Handle Multi-Round Duels (15-game AI Duel or 3-game 2-Player Duel)
   if (state.duelRound < state.duelTotalRounds) {
     setTimeout(() => {
       state.duelRound++;
       if (state.mode === "ai-duel") {
-        // 3 rounds per difficulty across 5 tiers = 15 games
         const tierIndex = Math.min(4, Math.floor((state.duelRound - 1) / 3));
         state.difficulty = DIFF_ORDER[tierIndex];
       }
       initBoardState(false);
-    }, 1500);
+    }, 1450);
   } else if (state.duelTotalRounds > 1) {
     setTimeout(() => {
       openStatsModal(
         `Duel Complete (${state.duelTotalRounds} Games) — Final Score ${state.p1Score} : ${state.p2Score}`
       );
-    }, 1200);
+    }, 1150);
   }
 }
 
 // ----------------------------------------------------------------------------
-// 6. RANDOM ATTACKS, THEME PLAGUE TRANSITION, UI SLIDE-HIDE & HUD
+// 6. RANDOM ATTACKS, THEME PLAGUE TRANSITION & HUD TELEMETRY
 // ----------------------------------------------------------------------------
 let attackPulseTime = 0;
 
@@ -1021,20 +1139,23 @@ function triggerPlagueThemeSwitch() {
 
   sfx.playThemePlague();
 
-  // 1. Global upper-left blurred plague wave
   const overlay = document.getElementById("plague-overlay");
   overlay.classList.remove("plague-active");
   void overlay.offsetWidth;
   overlay.classList.add("plague-active");
 
-  // 2. Individual upper-left blurred plague transition for each UI surface
   document.querySelectorAll(".ui-surface").forEach((el, idx) => {
     el.classList.remove("section-plague");
     void el.offsetWidth;
     setTimeout(() => {
       el.classList.add("section-plague");
-    }, idx * 28);
+    }, idx * 24);
   });
+
+  // If the Analytics Graph modal is open, re-render with crisp black/white labels
+  if (!document.getElementById("modal-stats").classList.contains("hidden")) {
+    drawStatsChart();
+  }
 }
 
 function formatSeconds(sec) {
@@ -1057,7 +1178,7 @@ function updateTurnBanner(customText) {
 
   const queue = state.currentPlayer === 1 ? state.p1MarksQueue : state.p2MarksQueue;
   if (state.rule === "threepower" && queue.length >= 3 && state.selectedRemovalIndex === null) {
-    bannerText.textContent = `${activeName}'s Turn (${symbol}) — Select 1 of your 3 marks to relocate`;
+    bannerText.textContent = `${activeName}'s Turn (${symbol}) — Tap 1 of your 3 marks to relocate`;
   } else {
     bannerText.textContent = `${activeName}'s Turn (${symbol})`;
   }
@@ -1099,7 +1220,7 @@ function updateHUD() {
 }
 
 // ----------------------------------------------------------------------------
-// 7. ANALYTICS GRAPH & LEADERBOARD RENDERER
+// 7. UN-SQUISHED HIGH-DPI ANALYTICS GRAPH & LEADERBOARD RENDERER
 // ----------------------------------------------------------------------------
 function openStatsModal(customSubtitle) {
   const modal = document.getElementById("modal-stats");
@@ -1120,34 +1241,86 @@ function openStatsModal(customSubtitle) {
     tbody.appendChild(tr);
   });
 
-  // Draw Victory Bar + Duel Progression Graph on Canvas
+  requestAnimationFrame(drawStatsChart);
+}
+
+function drawStatsChart() {
   const chart = document.getElementById("stats-chart");
+  const rect = chart.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  chart.width = Math.round(rect.width * dpr);
+  chart.height = Math.round(rect.height * dpr);
+
   const ctx = chart.getContext("2d");
-  ctx.clearRect(0, 0, chart.width, chart.height);
+  ctx.save();
+  ctx.scale(dpr, dpr);
 
-  const barColors = [state.p1Color, state.p2Color, "#9b87f5", "#ffd166"];
-  const pad = 42;
-  const usableW = chart.width - pad * 2;
-  const usableH = chart.height - pad * 2;
-  const maxVal = Math.max(3, ...entries.map((e) => e[1]));
+  const W = rect.width;
+  const H = rect.height;
+  ctx.clearRect(0, 0, W, H);
 
-  entries.slice(0, 4).forEach(([name, val], i) => {
-    const bw = usableW / Math.max(1, entries.length) - 24;
-    const x = pad + i * (bw + 24);
-    const bh = (val / maxVal) * usableH;
-    const y = chart.height - pad - bh;
+  const textColor = state.theme === "dark" ? "#ffffff" : "#000000";
+  const gridColor =
+    state.theme === "dark" ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.14)";
 
-    ctx.fillStyle = barColors[i % barColors.length];
-    ctx.fillRect(x, y, bw, bh);
+  const entries = Object.entries(state.leaderboard)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  const maxVal = Math.max(4, ...entries.map((e) => e[1]));
 
-    ctx.fillStyle = state.theme === "dark" ? "#f5f2ff" : "#2a2344";
-    ctx.font = "bold 13px sans-serif";
-    ctx.fillText(`${name} (${val})`, x, chart.height - 14);
+  const padLeft = 38;
+  const padRight = 18;
+  const padTop = 22;
+  const padBottom = 34;
+  const plotW = W - padLeft - padRight;
+  const plotH = H - padTop - padBottom;
+
+  // Horizontal Reference Grid Lines
+  ctx.strokeStyle = gridColor;
+  ctx.lineWidth = 1;
+  ctx.fillStyle = textColor;
+  ctx.font = "700 11px -apple-system, sans-serif";
+
+  for (let g = 0; g <= 4; g++) {
+    const y = padTop + (g / 4) * plotH;
+    const val = Math.round(maxVal * (1 - g / 4));
+    ctx.beginPath();
+    ctx.moveTo(padLeft, y);
+    ctx.lineTo(W - padRight, y);
+    ctx.stroke();
+    ctx.fillText(String(val), 10, y + 4);
+  }
+
+  // Proportional Un-Squished Bars
+  const barColors = [state.p1Color, state.p2Color, "#a799ff", "#ffd166", "#72efdd"];
+  const slotW = plotW / Math.max(1, entries.length);
+  const barW = Math.min(56, slotW * 0.56);
+
+  entries.forEach(([name, count], idx) => {
+    const centerX = padLeft + idx * slotW + slotW / 2;
+    const barH = Math.max(4, (count / maxVal) * plotH);
+    const x = centerX - barW / 2;
+    const y = padTop + plotH - barH;
+
+    ctx.fillStyle = barColors[idx % barColors.length];
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, barH, 6);
+    ctx.fill();
+
+    ctx.fillStyle = textColor;
+    ctx.textAlign = "center";
+    ctx.font = "700 12px -apple-system, sans-serif";
+    ctx.fillText(String(count), centerX, y - 6);
+    ctx.fillText(name.slice(0, 10), centerX, H - 11);
   });
+
+  ctx.restore();
 }
 
 // ----------------------------------------------------------------------------
-// 8. DEVICE AUTO-DETECTION, UI WIRING & SAVED PROGRESS
+// 8. DEVICE AUTO-DETECTION & THREE-STEP SCREEN WIRING
 // ----------------------------------------------------------------------------
 function autoDetectDevice() {
   const isTouch =
@@ -1182,22 +1355,26 @@ function switchScreen(target) {
     .getElementById("screen-device")
     .classList.toggle("active", target === "device");
   document
+    .getElementById("screen-mode")
+    .classList.toggle("active", target === "mode");
+  document
     .getElementById("screen-customize")
     .classList.toggle("active", target === "customize");
-  document.getElementById("hud-layer").classList.toggle("hidden", target !== "game");
-  document.getElementById("turn-banner").classList.toggle("hidden", target !== "game");
-  document.getElementById("btn-pause-open").classList.toggle("hidden", target !== "game");
+
+  const inGame = target === "game";
+  document.getElementById("hud-layer").classList.toggle("hidden", !inGame);
+  document.getElementById("turn-banner").classList.toggle("hidden", !inGame);
+  document.getElementById("btn-pause-open").classList.toggle("hidden", !inGame);
+  document.getElementById("device-action-dock").classList.toggle("hidden", !inGame);
 }
 
 function wireUIEvents() {
   autoDetectDevice();
 
-  // Check for Saved Match
   if (localStorage.getItem(STORAGE_KEYS.SAVED_MATCH)) {
     document.getElementById("saved-session-bar").classList.remove("hidden");
   }
 
-  // Device Cards
   document.querySelectorAll(".device-card").forEach((card) => {
     card.addEventListener("click", () => {
       document.querySelectorAll(".device-card").forEach((c) => c.classList.remove("selected"));
@@ -1207,16 +1384,34 @@ function wireUIEvents() {
     });
   });
 
-  document.getElementById("btn-to-screen-2").addEventListener("click", () => {
+  // Navigation between Initiation Screen 1, Screen 2A (Mode), Screen 2B (Customize), and Game
+  document.getElementById("btn-to-mode-screen").addEventListener("click", () => {
+    sfx.playCameraSwitch();
+    switchScreen("mode");
+  });
+
+  document.getElementById("btn-back-device").addEventListener("click", () => {
+    switchScreen("device");
+  });
+
+  document.getElementById("btn-to-customize-screen").addEventListener("click", () => {
     sfx.playCameraSwitch();
     switchScreen("customize");
   });
 
-  document.getElementById("btn-back-screen-1").addEventListener("click", () => {
-    switchScreen("device");
+  document.getElementById("btn-back-mode").addEventListener("click", () => {
+    switchScreen("mode");
+  });
+
+  // 360° World Peek Toggle on Customization Screen
+  document.getElementById("btn-toggle-preview-peek").addEventListener("click", (e) => {
+    const card = document.getElementById("customize-modal-card");
+    const isPeeking = card.classList.toggle("peek-mode");
+    e.currentTarget.textContent = isPeeking ? "Restore Studio Panel" : "Inspect 360° World";
   });
 
   document.getElementById("btn-deploy-match").addEventListener("click", () => {
+    document.getElementById("customize-modal-card").classList.remove("peek-mode");
     state.p1Name = document.getElementById("input-p1-name").value.trim() || "Player 1";
     state.p2Name =
       document.getElementById("input-p2-name").value.trim() ||
@@ -1226,12 +1421,11 @@ function wireUIEvents() {
     sfx.playCameraSwitch();
   });
 
-  // Theme Plague Toggle (Works from Homescreen, Studio, and In-Game)
   document
     .getElementById("btn-theme-toggle")
     .addEventListener("click", triggerPlagueThemeSwitch);
 
-  // Studio Segmented Controls
+  // Mode & Studio Segmented Controls
   bindSegmentedGroup("mode-select", (data) => {
     state.mode = data.mode;
     const p2Input = document.getElementById("input-p2-name");
@@ -1270,7 +1464,7 @@ function wireUIEvents() {
     state.skyTime = state.skyStart === "day" ? 0.25 : 0.75;
   });
 
-  // Color Pickers (Screen 2 & Pause Menu)
+  // Color Pickers Sync
   const syncColors = (p1, p2, board) => {
     state.p1Color = p1;
     state.p2Color = p2;
@@ -1304,7 +1498,7 @@ function wireUIEvents() {
     });
   });
 
-  // Individual UI Slide-Hide & Smooth Reflow + Unhide All
+  // Individual HUD Slide-Out & Smooth Reflow
   document.querySelectorAll(".card-hide-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const card = btn.closest(".hud-card");
@@ -1322,7 +1516,7 @@ function wireUIEvents() {
     sfx.playCameraSwitch();
   });
 
-  // Pause Studio & Save Progress to Homescreen
+  // Pause Studio & Save Progress
   document.getElementById("btn-pause-open").addEventListener("click", () => {
     state.paused = true;
     document.getElementById("modal-pause").classList.remove("hidden");
@@ -1365,7 +1559,7 @@ function wireUIEvents() {
     switchScreen("game");
   });
 
-  // Stats & Reset Buttons
+  // Stats & Action Dock
   document.getElementById("btn-hud-reset-round").addEventListener("click", () => {
     initBoardState(false);
   });
@@ -1379,9 +1573,7 @@ function wireUIEvents() {
     document.getElementById("modal-stats").classList.add("hidden");
   });
 
-  // Device Action Dock Buttons
   document.getElementById("btn-dock-cam").addEventListener("click", cycleCameraPOV);
-  document.getElementById("btn-dock-bird").addEventListener("click", triggerBirdJump);
   document.getElementById("btn-dock-fast").addEventListener("click", () => {
     state.skySpeed = Math.min(8.0, state.skySpeed + 0.5);
     updateHUD();
@@ -1394,7 +1586,7 @@ function wireUIEvents() {
     .getElementById("btn-dock-attack")
     .addEventListener("click", triggerRandomAttackVisual);
 
-  // Keyboard Shortcuts (W/S Sky Cycle, Up Arrow Bird Jump, C Camera POV)
+  // Keyboard Shortcuts (W/S Sky Cycle, C Camera POV)
   window.addEventListener("keydown", (e) => {
     if (e.target.tagName === "INPUT") return;
     const key = e.key.toLowerCase();
@@ -1406,9 +1598,6 @@ function wireUIEvents() {
       updateHUD();
     } else if (key === "c") {
       cycleCameraPOV();
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      triggerBirdJump();
     }
   });
 }
@@ -1437,7 +1626,7 @@ window.addEventListener("pointermove", (e) => {
   const dy = e.clientY - prevPointer.y;
   prevPointer = { x: e.clientX, y: e.clientY };
   camTheta -= dx * 0.0075;
-  camPhi = Math.max(0.22, Math.min(1.42, camPhi - dy * 0.0065));
+  camPhi = Math.max(0.25, Math.min(1.42, camPhi - dy * 0.0065));
 });
 
 window.addEventListener("pointerup", (e) => {
@@ -1445,7 +1634,7 @@ window.addEventListener("pointerup", (e) => {
   isDraggingBoard = false;
 
   const moveDist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
-  if (moveDist > 6) return; // Dragged to rotate 360°, not a click
+  if (moveDist > 6) return;
 
   pointerNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
   pointerNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -1462,6 +1651,9 @@ window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  if (!document.getElementById("modal-stats").classList.contains("hidden")) {
+    drawStatsChart();
+  }
 });
 
 // ----------------------------------------------------------------------------
@@ -1481,7 +1673,7 @@ function animate(now) {
   const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
   lastFrameTime = now;
 
-  // 1. Sky Cycle & Day/Night Pastel Interpolation
+  // 1. Sky Cycle & Atmospheric Fog Interpolation
   if (state.skyMode === "dynamic") {
     state.skyTime = (state.skyTime + dt * 0.025 * state.skySpeed) % 1;
   } else {
@@ -1489,13 +1681,15 @@ function animate(now) {
   }
 
   const daylightFactor = Math.sin(state.skyTime * Math.PI * 2) * 0.5 + 0.5;
-  const palette = BIOME_PALETTES[state.biome] || BIOME_PALETTES.royal;
+  const palette = BIOME_PALETTES[state.biome] || BIOME_PALETTES.forest;
   const dayCol = new THREE.Color(palette.daySky);
   const nightCol = new THREE.Color(palette.nightSky);
-  scene.background = nightCol.clone().lerp(dayCol, daylightFactor);
+  const currentSky = nightCol.clone().lerp(dayCol, daylightFactor);
+  scene.background = currentSky;
+  scene.fog.color.copy(currentSky);
 
-  sunLight.intensity = 0.25 + daylightFactor * 0.65;
-  ambientLight.intensity = 0.45 + daylightFactor * 0.4;
+  sunLight.intensity = 0.28 + daylightFactor * 0.65;
+  hemiLight.intensity = 0.45 + daylightFactor * 0.42;
   const phaseEl = document.getElementById("hud-sky-phase");
   if (phaseEl) phaseEl.textContent = daylightFactor > 0.5 ? "Daylight" : "Starlight Night";
 
@@ -1506,29 +1700,12 @@ function animate(now) {
     cloud.position.z = Math.sin(cloud.userData.angle) * cloud.userData.dist;
   });
 
-  // 3. Autonomous Bird Movement + Up-Arrow Jump Physics
-  birdAngle += dt * 0.65;
-  const birdRadius = 5.4;
-  if (birdJumpY > 0 || birdJumpVel !== 0) {
-    birdJumpY += birdJumpVel;
-    birdJumpVel -= 0.012;
-    if (birdJumpY <= 0) {
-      birdJumpY = 0;
-      birdJumpVel = 0;
-    }
-  }
-  const hopWave = Math.abs(Math.sin(now * 0.006)) * 0.22;
-  birdGroup.position.set(
-    Math.cos(birdAngle) * birdRadius,
-    0.35 + hopWave + birdJumpY,
-    Math.sin(birdAngle) * birdRadius
-  );
-  birdGroup.rotation.y = -birdAngle;
-  if (birdGroup.userData.leftWing) {
-    const flap = Math.sin(now * 0.018) * 0.45;
-    birdGroup.userData.leftWing.rotation.z = flap;
-    birdGroup.userData.rightWing.rotation.z = -flap;
-  }
+  // 3. Animate Ambient Biome Particles (Fireflies / Bubbles / Neon Motes)
+  ambientParticlesGroup.children.forEach((orb) => {
+    orb.position.y =
+      orb.userData.baseY +
+      Math.sin(now * 0.002 * orb.userData.speed + orb.userData.phase) * 0.65;
+  });
 
   // 4. Sketch Paper 3D Pen Drawing Animation
   if (activePenAnim && activePenAnim.pen) {
@@ -1536,8 +1713,8 @@ function animate(now) {
     const p = activePenAnim.progress;
     const pen = activePenAnim.pen;
     if (p < 1) {
-      const scribbleX = Math.sin(p * Math.PI * 6) * 0.35;
-      const scribbleZ = Math.cos(p * Math.PI * 6) * 0.35;
+      const scribbleX = Math.sin(p * Math.PI * 6) * 0.32;
+      const scribbleZ = Math.cos(p * Math.PI * 6) * 0.32;
       pen.position.lerpVectors(pen.userData.restPos, activePenAnim.target, Math.sin(p * Math.PI));
       pen.position.x += scribbleX;
       pen.position.z += scribbleZ;
@@ -1550,16 +1727,16 @@ function animate(now) {
   // 5. Random Arena Attack Visual Pulse
   if (attackPulseTime > 0) {
     attackPulseTime = Math.max(0, attackPulseTime - dt * 1.8);
-    worldGroup.position.x = Math.sin(now * 0.08) * attackPulseTime * 0.25;
-    worldGroup.rotation.z = Math.cos(now * 0.06) * attackPulseTime * 0.04;
+    worldGroup.position.x = Math.sin(now * 0.08) * attackPulseTime * 0.24;
+    worldGroup.rotation.z = Math.cos(now * 0.06) * attackPulseTime * 0.035;
   } else {
     worldGroup.position.set(0, 0, 0);
     worldGroup.rotation.set(0, 0, 0);
   }
 
-  // 6. Camera POV Modes + 360° Preview Rotation
+  // 6. Camera POV Modes + Continuous 360° Scenic Orbit on Setup Screens
   if (state.screen !== "game" && !isDraggingBoard) {
-    camTheta += dt * 0.28; // Continuous 360° board inspection on Initiation & Studio screens
+    camTheta += dt * 0.22;
   }
 
   const mode = camModes[camModeIndex];
@@ -1571,8 +1748,8 @@ function animate(now) {
     );
   } else if (mode === "Top-Down Tactical") {
     camera.position.lerp(new THREE.Vector3(0, 16.5, 0.01), 0.08);
-  } else if (mode === "Isometric") {
-    camera.position.lerp(new THREE.Vector3(11.5, 11.5, 11.5), 0.08);
+  } else if (mode === "Scenic Vista") {
+    camera.position.lerp(new THREE.Vector3(0, 6.2, 16.8), 0.08);
   } else if (mode === "Contender 1 POV") {
     camera.position.lerp(new THREE.Vector3(0, 8.5, 13.5), 0.08);
   } else if (mode === "Contender 2 POV") {
@@ -1585,7 +1762,6 @@ function animate(now) {
 
 // Initialize Scene & Application
 buildClouds();
-buildAutonomousBird();
 initBoardState(true);
 wireUIEvents();
 requestAnimationFrame(animate);

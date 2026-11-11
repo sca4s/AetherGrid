@@ -1,6 +1,6 @@
 /* ============================================================================
    AETHERGRID — 3D TACTICAL ALIGNMENT ENGINE
-   Realistic Scenic 3D Biomes + Web Audio Synthesizer + N×N Alignment & Duels
+   Gothic & Scenic 3D Biomes + Continuous Crooked Sketching + Web Audio Synth
    ============================================================================ */
 
 // ----------------------------------------------------------------------------
@@ -27,11 +27,11 @@ class ProceduralSoundEngine {
 
     if (isPaper) {
       // Realistic Graphite Pencil / Pen Sketch Stroke Sound
-      const bufferSize = Math.floor(this.ctx.sampleRate * 0.26);
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.28);
       const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
       const data = noiseBuffer.getChannelData(0);
       for (let i = 0; i < bufferSize; i++) {
-        const strokeMod = Math.sin(i * 0.02) * 0.5 + 0.5;
+        const strokeMod = Math.sin(i * 0.022) * 0.5 + 0.5;
         data[i] = (Math.random() * 2 - 1) * strokeMod;
       }
       const noise = this.ctx.createBufferSource();
@@ -43,8 +43,8 @@ class ProceduralSoundEngine {
       filter.Q.setValueAtTime(3.0, now);
 
       const gain = this.ctx.createGain();
-      gain.gain.setValueAtTime(0.22, now);
-      gain.gain.exponentialRampToValueAtTime(0.008, now + 0.25);
+      gain.gain.setValueAtTime(0.24, now);
+      gain.gain.exponentialRampToValueAtTime(0.008, now + 0.27);
 
       noise.connect(filter);
       filter.connect(gain);
@@ -94,8 +94,8 @@ class ProceduralSoundEngine {
     const gain = this.ctx.createGain();
     osc.type = "sine";
     osc.frequency.setValueAtTime(260, now);
-    osc.frequency.exponentialRampToValueAtTime(590, now + 0.15);
-    gain.gain.setValueAtTime(0.13, now);
+    osc.frequency.exponentialRampToValueAtTime(610, now + 0.15);
+    gain.gain.setValueAtTime(0.14, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
     osc.connect(gain);
     gain.connect(this.ctx.destination);
@@ -139,8 +139,26 @@ class ProceduralSoundEngine {
 const sfx = new ProceduralSoundEngine();
 
 // ----------------------------------------------------------------------------
-// 2. APPLICATION STATE & STORAGE KEYS
+// 2. CURATED HIGH-CONTRAST PASTEL PALETTES & APPLICATION STATE
 // ----------------------------------------------------------------------------
+const STRIKER_SWATCHES = [
+  { name: "Rose Coral", hex: "#ff5c8a" },
+  { name: "Sky Azure", hex: "#2ec4b6" },
+  { name: "Royal Orchid", hex: "#9b5de5" },
+  { name: "Amber Sun", hex: "#ff9f1c" },
+  { name: "Emerald Mint", hex: "#10b981" },
+  { name: "Cobalt Periwinkle", hex: "#4361ee" }
+];
+
+const BOARD_SWATCHES = [
+  { name: "Lilac Mist", hex: "#dcd3f8" },
+  { name: "Alabaster Cream", hex: "#f5efe6" },
+  { name: "Rose Quartz", hex: "#f7d6e0" },
+  { name: "Sage Celadon", hex: "#d4ebe2" },
+  { name: "Glacier Blue", hex: "#d2e5f7" },
+  { name: "Obsidian Velvet", hex: "#322b47" }
+];
+
 const STORAGE_KEYS = {
   HIGH_SCORE: "aethergrid_high_score",
   BEST_TIME: "aethergrid_best_time",
@@ -157,6 +175,15 @@ const ATTACK_TYPES = [
   "Prism Quake"
 ];
 
+// Named Camera Modes — All allow 360° Free User Rotation around their perspective!
+const CAMERA_MODES = [
+  { name: "Orbital 360° Free", defaultPhi: 0.98, defaultTheta: 0.62, radius: 15.2 },
+  { name: "Zenith Top-Down Tactical", defaultPhi: 0.16, defaultTheta: 0.0, radius: 16.4 },
+  { name: "Scenic Horizon Vista", defaultPhi: 1.24, defaultTheta: 0.35, radius: 16.8 },
+  { name: "Contender 1 North POV", defaultPhi: 0.92, defaultTheta: 1.57, radius: 14.8 },
+  { name: "Contender 2 South POV", defaultPhi: 0.92, defaultTheta: -1.57, radius: 14.8 }
+];
+
 const state = {
   screen: "device", // "device" | "mode" | "customize" | "game"
   paused: false,
@@ -168,19 +195,23 @@ const state = {
   rule: "classic", // "classic" | "threepower"
   gridSize: 3,
   difficulty: "medium",
-  biome: "forest", // "forest" | "cyberpunk" | "parisian" | "desert" | "underwater" | "meadows" | "paper"
-  shapeStyle: "xo",
+  biome: "gothic_balcony",
+  p1Shape: "x", // "x" | "o" | "crystal" | "torus" | "obelisk" | "sphere"
+  p2Shape: "o",
   p1Name: "Astra",
   p2Name: "Aether AI",
-  p1Color: "#ff8da1",
-  p2Color: "#6bcBbd",
-  boardColor: "#dcd3f8",
+  p1Color: STRIKER_SWATCHES[0].hex,
+  p2Color: STRIKER_SWATCHES[1].hex,
+  boardColor: BOARD_SWATCHES[0].hex,
 
   // Sky Cycle
   skyMode: "dynamic",
   skyStart: "day",
   skyTime: 0.25,
   skySpeed: 1.0,
+
+  // Camera State
+  camModeIndex: 0,
 
   // Active Match State
   board: [],
@@ -209,7 +240,7 @@ const state = {
 };
 
 // ----------------------------------------------------------------------------
-// 3. THREE.JS SCENE, REALISTIC SCENIC BIOMES, CLOUDS & SKETCH PENS
+// 3. THREE.JS SCENE, CONTINUOUS CROOKED TUBES & REALISTIC 3D BIOMES
 // ----------------------------------------------------------------------------
 const canvas = document.getElementById("game-canvas");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -219,27 +250,25 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0xdfd8f7, 0.014);
+scene.fog = new THREE.FogExp2(0xdfd8f7, 0.011);
 
 const camera = new THREE.PerspectiveCamera(
   44,
   window.innerWidth / window.innerHeight,
   0.1,
-  300
+  320
 );
 
-// Balanced Atmospheric Lighting (Non-reflective matte surfaces with soft shadows)
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0xb8b0d8, 0.72);
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0xb8b0d8, 0.76);
 scene.add(hemiLight);
 
-const sunLight = new THREE.DirectionalLight(0xfff7e8, 0.72);
+const sunLight = new THREE.DirectionalLight(0xfff7e8, 0.75);
 sunLight.position.set(18, 28, 16);
 sunLight.castShadow = true;
 sunLight.shadow.mapSize.width = 1024;
 sunLight.shadow.mapSize.height = 1024;
 scene.add(sunLight);
 
-// Scene Hierarchy
 const worldGroup = new THREE.Group();
 const boardGroup = new THREE.Group();
 const cellsGroup = new THREE.Group();
@@ -259,23 +288,17 @@ worldGroup.add(
 );
 scene.add(worldGroup, cloudsGroup);
 
-// Camera Orbit & POV Controller
-const camModes = [
-  "Orbit 360°",
-  "Top-Down Tactical",
-  "Scenic Vista",
-  "Contender 1 POV",
-  "Contender 2 POV"
-];
-let camModeIndex = 0;
-let camTheta = 0.62;
-let camPhi = 1.02;
-let camRadius = 15.2;
+// Camera Spherical Coordinates (Freely rotatable 360° in every mode)
+let camTheta = CAMERA_MODES[0].defaultTheta;
+let camPhi = CAMERA_MODES[0].defaultPhi;
+let camRadius = CAMERA_MODES[0].radius;
+let targetCamTheta = camTheta;
+let targetCamPhi = camPhi;
+let targetCamRadius = camRadius;
 let isDraggingBoard = false;
 let prevPointer = { x: 0, y: 0 };
 let pointerDownPos = { x: 0, y: 0 };
 
-// Strictly Non-Reflective Matte Material Helper
 function createMatteMaterial(hexColor, opacity = 1) {
   return new THREE.MeshLambertMaterial({
     color: new THREE.Color(hexColor),
@@ -284,28 +307,36 @@ function createMatteMaterial(hexColor, opacity = 1) {
   });
 }
 
+// Continuous Unbroken Crooked Pencil Stroke Builder (Fixes Broken Lines in Sketch Paper Mode)
+function createContinuousCrookedStroke(pointsArray, radius, material, closed = false) {
+  const curve = new THREE.CatmullRomCurve3(pointsArray, closed);
+  const segments = Math.max(36, pointsArray.length * 8);
+  const tubeGeo = new THREE.TubeGeometry(curve, segments, radius, 10, closed);
+  return new THREE.Mesh(tubeGeo, material);
+}
+
 // 3D Volumetric Pastel Clouds
 function buildClouds() {
   cloudsGroup.clear();
-  const cloudMat = createMatteMaterial("#ffffff", 0.86);
+  const cloudMat = createMatteMaterial("#ffffff", 0.88);
   for (let i = 0; i < 12; i++) {
     const cluster = new THREE.Group();
     const puffs = 4 + (i % 3);
     for (let p = 0; p < puffs; p++) {
-      const geo = new THREE.SphereGeometry(1.3 + (p % 2) * 0.55, 14, 14);
+      const geo = new THREE.SphereGeometry(1.35 + (p % 2) * 0.55, 14, 14);
       const mesh = new THREE.Mesh(geo, cloudMat);
       mesh.position.set(p * 1.25 - 1.5, (p % 2) * 0.35, (p % 3) * 0.45);
       mesh.scale.y = 0.58;
       cluster.add(mesh);
     }
     const angle = (i / 12) * Math.PI * 2;
-    const dist = 24 + (i % 3) * 6;
+    const dist = 25 + (i % 3) * 6;
     cluster.position.set(
       Math.cos(angle) * dist,
-      9.5 + (i % 3) * 2.2,
+      10.2 + (i % 3) * 2.2,
       Math.sin(angle) * dist
     );
-    cluster.userData = { angle, dist, speed: 0.025 + (i % 4) * 0.008 };
+    cluster.userData = { angle, dist, speed: 0.022 + (i % 4) * 0.008 };
     cloudsGroup.add(cluster);
   }
 }
@@ -341,62 +372,76 @@ function buildSketchPens() {
 
     pen.add(shaft, woodCone, graphite);
     pen.rotation.z = restX < 0 ? -0.26 : 0.26;
-    pen.position.set(restX, 1.15, -3.6);
-    pen.userData = { restPos: new THREE.Vector3(restX, 1.15, -3.6) };
+    pen.position.set(restX, 1.15, -3.8);
+    pen.userData = { restPos: new THREE.Vector3(restX, 1.15, -3.8) };
     return pen;
   };
 
-  pen1Mesh = makePen(state.p1Color, state.p1Color, -5.5);
-  pen2Mesh = makePen(state.p2Color, state.p2Color, 5.5);
+  pen1Mesh = makePen(state.p1Color, state.p1Color, -5.6);
+  pen2Mesh = makePen(state.p2Color, state.p2Color, 5.6);
   pensGroup.add(pen1Mesh, pen2Mesh);
   pensGroup.visible = state.biome === "paper";
 }
 
 // ----------------------------------------------------------------------------
-// 4. REALISTIC SCENIC 3D BIOMES BEHIND & AROUND THE BOARD
+// 4. BIOME PALETTES, VISIBLE BOARD BORDER FRAME & SCENIC 3D BACKGROUNDS
 // ----------------------------------------------------------------------------
 const BIOME_PALETTES = {
+  gothic_balcony: {
+    daySky: "#dcd3f2",
+    nightSky: "#151126",
+    pedestal: "#4a425c",
+    gridLine: "#2c2240",
+    frameRim: "#342a4a"
+  },
+  gothic_castle: {
+    daySky: "#d5dce8",
+    nightSky: "#121524",
+    pedestal: "#525866",
+    gridLine: "#252836",
+    frameRim: "#2f3445"
+  },
   forest: {
     daySky: "#d8f0e4",
     nightSky: "#11221f",
-    pedestal: "#8c6d53",
-    gridLine: "#3b5949"
+    pedestal: "#6f4e37",
+    gridLine: "#284234",
+    frameRim: "#4a3525"
   },
   cyberpunk: {
     daySky: "#d6eef8",
-    nightSky: "#111026",
-    pedestal: "#5c6484",
-    gridLine: "#ff6b9d"
-  },
-  parisian: {
-    daySky: "#f2e8f7",
-    nightSky: "#1e1a34",
-    pedestal: "#dfd5c8",
-    gridLine: "#4f435a"
+    nightSky: "#100f24",
+    pedestal: "#3c4264",
+    gridLine: "#ff4d8d",
+    frameRim: "#22263e"
   },
   desert: {
-    daySky: "#fae5c8",
-    nightSky: "#291c2e",
-    pedestal: "#e2a97e",
-    gridLine: "#8a4f38"
+    daySky: "#fae3c6",
+    nightSky: "#26192b",
+    pedestal: "#c98557",
+    gridLine: "#5e311d",
+    frameRim: "#7d452b"
   },
   underwater: {
-    daySky: "#bce8f0",
-    nightSky: "#0c2233",
-    pedestal: "#76b8c4",
-    gridLine: "#296878"
+    daySky: "#b8e6f0",
+    nightSky: "#0a1f30",
+    pedestal: "#4b909e",
+    gridLine: "#1a4d5c",
+    frameRim: "#235b6b"
   },
   meadows: {
-    daySky: "#e0f2fe",
-    nightSky: "#16243b",
-    pedestal: "#a7d79b",
-    gridLine: "#436b47"
+    daySky: "#dff2fe",
+    nightSky: "#152338",
+    pedestal: "#74a868",
+    gridLine: "#2c4c2f",
+    frameRim: "#3e6942"
   },
   paper: {
-    daySky: "#f7f4eb",
-    nightSky: "#232429",
-    pedestal: "#fdfbf7",
-    gridLine: "#4a5568"
+    daySky: "#ebe6dc",
+    nightSky: "#202126",
+    pedestal: "#c7bdb1",
+    gridLine: "#2d3748",
+    frameRim: "#4a5568"
   }
 };
 
@@ -406,70 +451,120 @@ function buildBoardAndBiome() {
   biomePropsGroup.clear();
   ambientParticlesGroup.clear();
 
-  const palette = BIOME_PALETTES[state.biome] || BIOME_PALETTES.forest;
+  const palette = BIOME_PALETTES[state.biome] || BIOME_PALETTES.gothic_balcony;
   const N = state.gridSize;
   const boardSpan = 7.6;
   const cellSize = boardSpan / N;
+  const half = boardSpan / 2;
 
-  // Main Board Table
-  const baseColor = state.biome === "paper" ? "#fdfbf7" : state.boardColor;
-  const baseHeight = state.biome === "paper" ? 0.14 : 0.62;
-  const baseGeo = new THREE.BoxGeometry(boardSpan + 1.0, baseHeight, boardSpan + 1.0);
+  // 1. Main Board Table Surface
+  const baseColor = state.biome === "paper" ? "#fffdf9" : state.boardColor;
+  const baseHeight = state.biome === "paper" ? 0.16 : 0.62;
+  const tableWidth = boardSpan + 1.0;
+  const baseGeo = new THREE.BoxGeometry(tableWidth, baseHeight, tableWidth);
   const baseMesh = new THREE.Mesh(baseGeo, createMatteMaterial(baseColor));
   baseMesh.position.y = -baseHeight / 2;
   baseMesh.receiveShadow = true;
   boardGroup.add(baseMesh);
 
-  // Pedestal Base under Table
-  const pillarGeo = new THREE.CylinderGeometry(2.6, 3.4, 1.8, 24);
+  // 2. DISTINCT HIGH-CONTRAST 3D OUTER BOARD BORDER FRAME (Resolves Invisible Border Issue)
+  const frameMat = createMatteMaterial(palette.frameRim);
+  const rimThickness = 0.28;
+  const rimHeight = baseHeight + 0.18;
+  const outerSpan = tableWidth + rimThickness * 2;
+
+  const northRim = new THREE.Mesh(
+    new THREE.BoxGeometry(outerSpan, rimHeight, rimThickness),
+    frameMat
+  );
+  northRim.position.set(0, -baseHeight / 2 + 0.05, -tableWidth / 2 - rimThickness / 2);
+
+  const southRim = northRim.clone();
+  southRim.position.z = tableWidth / 2 + rimThickness / 2;
+
+  const eastRim = new THREE.Mesh(
+    new THREE.BoxGeometry(rimThickness, rimHeight, tableWidth),
+    frameMat
+  );
+  eastRim.position.set(tableWidth / 2 + rimThickness / 2, -baseHeight / 2 + 0.05, 0);
+
+  const westRim = eastRim.clone();
+  westRim.position.x = -tableWidth / 2 - rimThickness / 2;
+
+  boardGroup.add(northRim, southRim, eastRim, westRim);
+
+  // Corner Accent Finials on Board Frame
+  const cornerGeo = new THREE.CylinderGeometry(0.24, 0.24, rimHeight + 0.08, 12);
+  [
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1]
+  ].forEach(([cx, cz]) => {
+    const post = new THREE.Mesh(cornerGeo, frameMat);
+    post.position.set(
+      cx * (tableWidth / 2 + rimThickness / 2),
+      -baseHeight / 2 + 0.07,
+      cz * (tableWidth / 2 + rimThickness / 2)
+    );
+    boardGroup.add(post);
+  });
+
+  // 3. Pedestal Base under Table
+  const pillarGeo = new THREE.CylinderGeometry(2.6, 3.5, 1.9, 24);
   const pillarMesh = new THREE.Mesh(pillarGeo, createMatteMaterial(palette.pedestal));
-  pillarMesh.position.y = -baseHeight - 0.9;
+  pillarMesh.position.y = -baseHeight - 0.95;
   pillarMesh.receiveShadow = true;
   boardGroup.add(pillarMesh);
 
-  // Grid Lines (Crooked hand-drawn segments in Sketch Paper mode, sculpted bars otherwise)
+  // 4. Grid Lines (Including Outer Boundary Lines + Continuous Unbroken Crooked Pencil Lines in Paper Mode)
   const lineMat = createMatteMaterial(palette.gridLine);
-  const half = boardSpan / 2;
 
-  for (let i = 1; i < N; i++) {
+  for (let i = 0; i <= N; i++) {
     const offset = -half + i * cellSize;
+    const isOuterBoundary = i === 0 || i === N;
+
     if (state.biome === "paper") {
-      const segments = 12;
-      for (let s = 0; s < segments; s++) {
-        const t1 = -half + (s / segments) * boardSpan;
-        const t2 = -half + ((s + 1) / segments) * boardSpan;
-        const j1 = Math.sin(s * 2.3 + i) * 0.055;
-        const j2 = Math.cos((s + 1) * 1.9 + i) * 0.055;
-
-        const vLen = Math.hypot(j2 - j1, t2 - t1);
-        const vSeg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, vLen), lineMat);
-        vSeg.position.set(offset + (j1 + j2) / 2, 0.03, (t1 + t2) / 2);
-        vSeg.rotation.y = Math.atan2(j2 - j1, t2 - t1);
-        boardGroup.add(vSeg);
-
-        const hSeg = new THREE.Mesh(new THREE.BoxGeometry(vLen, 0.04, 0.06), lineMat);
-        hSeg.position.set((t1 + t2) / 2, 0.03, offset + (j1 + j2) / 2);
-        hSeg.rotation.y = Math.atan2(j2 - j1, t2 - t1);
-        boardGroup.add(hSeg);
+      // Continuous Unbroken Hand-Drawn Crooked Pencil Lines using CatmullRomCurve3 + TubeGeometry
+      const vPoints = [];
+      const hPoints = [];
+      const controlCount = 14;
+      for (let s = 0; s <= controlCount; s++) {
+        const t = -half + (s / controlCount) * boardSpan;
+        const waveV = Math.sin(s * 1.45 + i * 2.1) * 0.055 + Math.cos(s * 2.7 - i) * 0.025;
+        const waveH = Math.cos(s * 1.55 + i * 1.8) * 0.055 + Math.sin(s * 2.5 + i) * 0.025;
+        vPoints.push(new THREE.Vector3(offset + waveV, 0.04, t));
+        hPoints.push(new THREE.Vector3(t, 0.04, offset + waveH));
       }
+      const strokeRadius = isOuterBoundary ? 0.055 : 0.042;
+      boardGroup.add(createContinuousCrookedStroke(vPoints, strokeRadius, lineMat, false));
+      boardGroup.add(createContinuousCrookedStroke(hPoints, strokeRadius, lineMat, false));
     } else {
-      const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.12, boardSpan), lineMat);
+      const barThick = isOuterBoundary ? 0.14 : 0.11;
+      const vBar = new THREE.Mesh(
+        new THREE.BoxGeometry(barThick, 0.12, boardSpan + barThick),
+        lineMat
+      );
       vBar.position.set(offset, 0.06, 0);
-      const hBar = new THREE.Mesh(new THREE.BoxGeometry(boardSpan, 0.12, 0.11), lineMat);
+
+      const hBar = new THREE.Mesh(
+        new THREE.BoxGeometry(boardSpan + barThick, 0.12, barThick),
+        lineMat
+      );
       hBar.position.set(0, 0.06, offset);
       boardGroup.add(vBar, hBar);
     }
   }
 
-  // Interactive Cell Hit Tiles
+  // 5. Interactive Cell Hit Tiles with Subtle Contrast Pad
   for (let r = 0; r < N; r++) {
     for (let c = 0; c < N; c++) {
       const x = -half + c * cellSize + cellSize / 2;
       const z = -half + r * cellSize + cellSize / 2;
-      const tileGeo = new THREE.BoxGeometry(cellSize * 0.88, 0.1, cellSize * 0.88);
-      const tileMat = createMatteMaterial("#ffffff", 0.15);
+      const tileGeo = new THREE.BoxGeometry(cellSize * 0.86, 0.08, cellSize * 0.86);
+      const tileMat = createMatteMaterial("#ffffff", 0.18);
       const tile = new THREE.Mesh(tileGeo, tileMat);
-      tile.position.set(x, 0.05, z);
+      tile.position.set(x, 0.04, z);
       tile.userData = { row: r, col: c, x, z, cellSize };
       cellsGroup.add(tile);
     }
@@ -481,218 +576,386 @@ function buildBoardAndBiome() {
 }
 
 function buildScenicBiomeWorld(biome) {
-  if (biome === "forest") {
-    // Mossy Forest Island, Multi-Tier Pine Trees, Rocks & Fireflies
-    const ground = new THREE.Mesh(
-      new THREE.CylinderGeometry(26, 28, 1.4, 36),
-      createMatteMaterial("#95c9a3")
+  if (biome === "gothic_balcony") {
+    // Gothic Stone Balcony / Windowside with Pointed Gothic Arches, Rose Window & Spires
+    const balconyDeck = new THREE.Mesh(
+      new THREE.BoxGeometry(17.5, 1.4, 15.5),
+      createMatteMaterial("#463f57")
     );
-    ground.position.y = -2.4;
+    balconyDeck.position.y = -2.4;
+    biomePropsGroup.add(balconyDeck);
+
+    // Checkerboard Stone Courtyard Inlay on Balcony
+    const tileDark = createMatteMaterial("#352f44");
+    const tileLight = createMatteMaterial("#655b7c");
+    for (let rx = -3; rx <= 3; rx++) {
+      for (let rz = -3; rz <= 3; rz++) {
+        const slab = new THREE.Mesh(
+          new THREE.BoxGeometry(2.1, 0.08, 1.9),
+          (rx + rz) % 2 === 0 ? tileDark : tileLight
+        );
+        slab.position.set(rx * 2.2, -1.68, rz * 2.0);
+        biomePropsGroup.add(slab);
+      }
+    }
+
+    // Ornate Gothic Balustrade Columns & Handrails around Balcony
+    const stoneMat = createMatteMaterial("#2d273b");
+    const railTop = new THREE.Mesh(new THREE.BoxGeometry(17.2, 0.28, 0.38), stoneMat);
+    railTop.position.set(0, -0.5, -7.4);
+    biomePropsGroup.add(railTop);
+
+    for (let i = -8; i <= 8; i++) {
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 1.2, 10), stoneMat);
+      col.position.set(i * 1.0, -1.15, -7.4);
+      biomePropsGroup.add(col);
+    }
+
+    // Grand Gothic Windowside Wall & Pointed Lancet Arches behind the Balcony
+    const archGroup = new THREE.Group();
+    const pillarLeft = new THREE.Mesh(new THREE.BoxGeometry(1.4, 11.5, 1.4), stoneMat);
+    pillarLeft.position.set(-5.8, 3.8, -8.2);
+    const pillarRight = pillarLeft.clone();
+    pillarRight.position.x = 5.8;
+
+    // Gothic Pointed Arch Ring & Stained-Glass Rose Window
+    const gothicArch = new THREE.Mesh(
+      new THREE.TorusGeometry(5.8, 0.55, 12, 32, Math.PI),
+      stoneMat
+    );
+    gothicArch.position.set(0, 7.2, -8.2);
+
+    const roseRim = new THREE.Mesh(
+      new THREE.TorusGeometry(2.3, 0.22, 12, 28),
+      stoneMat
+    );
+    roseRim.position.set(0, 9.2, -8.2);
+
+    const stainedGlass = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.2, 2.2, 0.12, 24),
+      createMatteMaterial("#c77dff", 0.65)
+    );
+    stainedGlass.rotation.x = Math.PI / 2;
+    stainedGlass.position.set(0, 9.2, -8.2);
+
+    archGroup.add(pillarLeft, pillarRight, gothicArch, roseRim, stainedGlass);
+    biomePropsGroup.add(archGroup);
+
+    // Distant Gothic Cathedral Spires beyond the Balcony
+    for (let s = -2; s <= 2; s++) {
+      if (s === 0) continue;
+      const spireTower = new THREE.Mesh(
+        new THREE.BoxGeometry(2.6, 14, 2.6),
+        createMatteMaterial("#3a324d")
+      );
+      spireTower.position.set(s * 7.5, 1.5, -22);
+      const spireRoof = new THREE.Mesh(
+        new THREE.ConeGeometry(2.1, 8.5, 8),
+        createMatteMaterial("#231d30")
+      );
+      spireRoof.position.set(s * 7.5, 12.7, -22);
+      biomePropsGroup.add(spireTower, spireRoof);
+    }
+
+    spawnAmbientParticles("#e0aaff", 28, 13);
+  } else if (biome === "gothic_castle") {
+    // Gothic Castle Courtyard, 4 Crenelated Corner Turrets, Curtain Walls & Torch Braziers
+    const courtyard = new THREE.Mesh(
+      new THREE.CylinderGeometry(24, 26, 1.6, 36),
+      createMatteMaterial("#4a4e5c")
+    );
+    courtyard.position.y = -2.5;
+    biomePropsGroup.add(courtyard);
+
+    const castleStone = createMatteMaterial("#393d4a");
+    const roofSlate = createMatteMaterial("#222530");
+    const flameMat = createMatteMaterial("#ff9f1c");
+
+    // 4 Corner Keep Towers with Crenelations & Conical Spires
+    const towerCoords = [
+      [-12, -12],
+      [12, -12],
+      [-12, 12],
+      [12, 12]
+    ];
+    towerCoords.forEach(([tx, tz]) => {
+      const turret = new THREE.Mesh(
+        new THREE.CylinderGeometry(2.4, 2.8, 12, 16),
+        castleStone
+      );
+      turret.position.set(tx, 3.5, tz);
+
+      const conicalRoof = new THREE.Mesh(
+        new THREE.ConeGeometry(3.0, 5.5, 16),
+        roofSlate
+      );
+      conicalRoof.position.set(tx, 12.2, tz);
+      biomePropsGroup.add(turret, conicalRoof);
+
+      // Glowing Torch Brazier near inner courtyard
+      const brazier = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.35, 0.2, 1.6, 10),
+        roofSlate
+      );
+      brazier.position.set(tx * 0.58, -0.9, tz * 0.58);
+      const flame = new THREE.Mesh(new THREE.OctahedronGeometry(0.42), flameMat);
+      flame.position.set(tx * 0.58, 0.2, tz * 0.58);
+      biomePropsGroup.add(brazier, flame);
+    });
+
+    // Castle Curtain Walls with Battlement Merlons
+    [
+      { x: 0, z: -12, rot: 0 },
+      { x: 0, z: 12, rot: 0 },
+      { x: -12, z: 0, rot: Math.PI / 2 },
+      { x: 12, z: 0, rot: Math.PI / 2 }
+    ].forEach((w) => {
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(20, 5.5, 1.3), castleStone);
+      wall.position.set(w.x, 0.2, w.z);
+      wall.rotation.y = w.rot;
+      biomePropsGroup.add(wall);
+
+      for (let m = -4; m <= 4; m++) {
+        const merlon = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.0, 1.4), castleStone);
+        if (w.rot === 0) {
+          merlon.position.set(m * 2.1, 3.4, w.z);
+        } else {
+          merlon.position.set(w.x, 3.4, m * 2.1);
+        }
+        biomePropsGroup.add(merlon);
+      }
+    });
+
+    spawnAmbientParticles("#ffb703", 30, 14);
+  } else if (biome === "forest") {
+    // Realistic Multi-Layered Enchanted Forest, Mossy Boulders, Woodland Stream & Fireflies
+    const ground = new THREE.Mesh(
+      new THREE.CylinderGeometry(28, 30, 1.6, 36),
+      createMatteMaterial("#7cb587")
+    );
+    ground.position.y = -2.5;
     biomePropsGroup.add(ground);
 
-    for (let i = 0; i < 24; i++) {
-      const angle = (i / 24) * Math.PI * 2 + (i % 3) * 0.12;
-      const radius = 11.5 + (i % 4) * 3.2;
+    // Winding Forest Stream
+    const stream = new THREE.Mesh(
+      new THREE.BoxGeometry(38, 0.12, 3.4),
+      createMatteMaterial("#72efdd", 0.75)
+    );
+    stream.position.set(0, -1.68, -9.5);
+    stream.rotation.y = 0.18;
+    biomePropsGroup.add(stream);
+
+    // Pine & Oak Trees + Boulders
+    for (let i = 0; i < 28; i++) {
+      const angle = (i / 28) * Math.PI * 2 + (i % 3) * 0.1;
+      const radius = 11.2 + (i % 4) * 3.4;
       const tree = new THREE.Group();
 
       const trunk = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.22, 0.35, 2.2, 8),
-        createMatteMaterial("#7f5539")
+        new THREE.CylinderGeometry(0.24, 0.38, 2.4, 8),
+        createMatteMaterial("#6f4e37")
       );
-      trunk.position.y = -0.8;
+      trunk.position.y = -0.7;
 
       const c1 = new THREE.Mesh(
-        new THREE.ConeGeometry(1.5, 2.8, 9),
+        new THREE.ConeGeometry(1.6, 3.0, 10),
+        createMatteMaterial("#3b7a57")
+      );
+      c1.position.y = 1.2;
+      const c2 = new THREE.Mesh(
+        new THREE.ConeGeometry(1.25, 2.5, 10),
         createMatteMaterial("#529471")
       );
-      c1.position.y = 1.1;
-      const c2 = new THREE.Mesh(
-        new THREE.ConeGeometry(1.15, 2.3, 9),
+      c2.position.y = 2.6;
+      const c3 = new THREE.Mesh(
+        new THREE.ConeGeometry(0.85, 1.9, 10),
         createMatteMaterial("#6ab089")
       );
-      c2.position.y = 2.4;
+      c3.position.y = 3.8;
 
-      tree.add(trunk, c1, c2);
-      const s = 0.85 + (i % 3) * 0.25;
-      tree.scale.setScalar(s);
+      tree.add(trunk, c1, c2, c3);
+      tree.scale.setScalar(0.85 + (i % 3) * 0.25);
       tree.position.set(Math.cos(angle) * radius, -1.2, Math.sin(angle) * radius);
       biomePropsGroup.add(tree);
+
+      if (i % 3 === 0) {
+        const rock = new THREE.Mesh(
+          new THREE.DodecahedronGeometry(0.7 + (i % 2) * 0.35),
+          createMatteMaterial("#8d99ae")
+        );
+        rock.position.set(
+          Math.cos(angle + 0.12) * (radius - 1.8),
+          -1.4,
+          Math.sin(angle + 0.12) * (radius - 1.8)
+        );
+        biomePropsGroup.add(rock);
+      }
     }
 
-    spawnAmbientParticles("#f9f871", 28, 12);
+    spawnAmbientParticles("#f9f871", 32, 13);
   } else if (biome === "cyberpunk") {
-    // Rooftop Terrace Deck, Glass/Neon Balustrade & Surrounding Skyline Skyscrapers
+    // High-Detail Cyberpunk Rooftop Terrace, Neon Skybridges & Skyscraper Metropolis
     const terrace = new THREE.Mesh(
-      new THREE.BoxGeometry(15.5, 1.2, 15.5),
-      createMatteMaterial("#2b2d42")
+      new THREE.BoxGeometry(16.2, 1.3, 16.2),
+      createMatteMaterial("#23253a")
     );
-    terrace.position.y = -2.3;
+    terrace.position.y = -2.35;
     biomePropsGroup.add(terrace);
 
-    // Neon Perimeter Railings
-    const railColor = createMatteMaterial("#72efdd");
-    const nRail = new THREE.Mesh(new THREE.BoxGeometry(15.2, 0.15, 0.15), railColor);
-    nRail.position.set(0, -1.0, -7.5);
+    const railColor = createMatteMaterial("#00f5d4");
+    const nRail = new THREE.Mesh(new THREE.BoxGeometry(15.8, 0.18, 0.18), railColor);
+    nRail.position.set(0, -1.0, -7.7);
     const sRail = nRail.clone();
-    sRail.position.z = 7.5;
-    const eRail = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 15.2), railColor);
-    eRail.position.set(7.5, -1.0, 0);
+    sRail.position.z = 7.7;
+    const eRail = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 15.8), railColor);
+    eRail.position.set(7.7, -1.0, 0);
     const wRail = eRail.clone();
-    wRail.position.x = -7.5;
+    wRail.position.x = -7.7;
     biomePropsGroup.add(nRail, sRail, eRail, wRail);
 
-    // City Skyline Towers around the Terrace
-    for (let i = 0; i < 28; i++) {
-      const angle = (i / 28) * Math.PI * 2;
-      const dist = 18 + (i % 3) * 5.5;
-      const h = 10 + (i % 5) * 4.5;
-      const w = 2.4 + (i % 3) * 0.9;
+    for (let i = 0; i < 30; i++) {
+      const angle = (i / 30) * Math.PI * 2;
+      const dist = 17.5 + (i % 3) * 5.2;
+      const h = 11 + (i % 5) * 4.8;
+      const w = 2.5 + (i % 3) * 0.9;
       const tower = new THREE.Mesh(
         new THREE.BoxGeometry(w, h, w),
-        createMatteMaterial(i % 2 === 0 ? "#3a345c" : "#283252")
+        createMatteMaterial(i % 2 === 0 ? "#2e294e" : "#1f2847")
       );
       tower.position.set(Math.cos(angle) * dist, h / 2 - 9, Math.sin(angle) * dist);
 
-      // Glowing Neon Roof Trim
       const cap = new THREE.Mesh(
-        new THREE.BoxGeometry(w + 0.15, 0.28, w + 0.15),
-        createMatteMaterial(i % 3 === 0 ? "#ff6b9d" : "#72efdd")
+        new THREE.BoxGeometry(w + 0.18, 0.3, w + 0.18),
+        createMatteMaterial(i % 3 === 0 ? "#ff4d8d" : "#00f5d4")
       );
       cap.position.set(tower.position.x, tower.position.y + h / 2 + 0.15, tower.position.z);
       biomePropsGroup.add(tower, cap);
     }
 
-    spawnAmbientParticles("#ff6b9d", 24, 15);
-  } else if (biome === "parisian") {
-    // Haussmann Stone Terrace, Ornate Iron Balcony Railings, Lamps & Distant Eiffel Tower
-    const stoneDeck = new THREE.Mesh(
-      new THREE.CylinderGeometry(11.5, 12.2, 1.4, 32),
-      createMatteMaterial("#e6dfd5")
-    );
-    stoneDeck.position.y = -2.3;
-    biomePropsGroup.add(stoneDeck);
-
-    // Wrought-iron perimeter posts & warm streetlamps
-    const ironMat = createMatteMaterial("#3d3a45");
-    const lampMat = createMatteMaterial("#ffe599");
-    for (let i = 0; i < 16; i++) {
-      const a = (i / 16) * Math.PI * 2;
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 1.4, 8), ironMat);
-      post.position.set(Math.cos(a) * 10.8, -1.0, Math.sin(a) * 10.8);
-      biomePropsGroup.add(post);
-
-      if (i % 4 === 0) {
-        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 4.2, 10), ironMat);
-        pole.position.set(Math.cos(a) * 10.2, 0.4, Math.sin(a) * 10.2);
-        const globe = new THREE.Mesh(new THREE.SphereGeometry(0.45, 14, 14), lampMat);
-        globe.position.set(Math.cos(a) * 10.2, 2.65, Math.sin(a) * 10.2);
-        biomePropsGroup.add(pole, globe);
-      }
-    }
-
-    // Distant Eiffel Tower Silhouette behind the Board
-    const eiffel = new THREE.Group();
-    const towerMat = createMatteMaterial("#7f7589");
-    const tier1 = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 3.6, 6, 4), towerMat);
-    tier1.position.y = 1;
-    const tier2 = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.75, 5.5, 4), towerMat);
-    tier2.position.y = 6.5;
-    const spire = new THREE.Mesh(new THREE.ConeGeometry(0.85, 7.5, 4), towerMat);
-    spire.position.y = 12.8;
-    eiffel.add(tier1, tier2, spire);
-    eiffel.rotation.y = Math.PI / 4;
-    eiffel.position.set(0, -3.5, -24);
-    biomePropsGroup.add(eiffel);
+    spawnAmbientParticles("#ff4d8d", 28, 15);
   } else if (biome === "desert") {
-    // Rolling Sand Dunes, Sandstone Mesas, Monument Arch & Cacti
+    // Realistic Sandstone Desert: Layered Canyon Mesas, Pyramid, Oasis Pool, Palm Trees & Cacti
     const sandFloor = new THREE.Mesh(
-      new THREE.CylinderGeometry(28, 30, 1.6, 36),
-      createMatteMaterial("#f4cba0")
+      new THREE.CylinderGeometry(30, 32, 1.6, 36),
+      createMatteMaterial("#f3c697")
     );
     sandFloor.position.y = -2.5;
     biomePropsGroup.add(sandFloor);
 
-    // Sandstone Arch & Mesas
-    const arch = new THREE.Mesh(
-      new THREE.TorusGeometry(5.5, 1.1, 10, 24, Math.PI),
-      createMatteMaterial("#d98a5f")
+    // Sculpted Sand Dunes & Ancient Pyramid
+    const pyramid = new THREE.Mesh(
+      new THREE.ConeGeometry(6.5, 8.5, 4),
+      createMatteMaterial("#e09f67")
     );
-    arch.position.set(-8, -2.0, -16);
+    pyramid.rotation.y = Math.PI / 4;
+    pyramid.position.set(11, 1.6, -17);
+    biomePropsGroup.add(pyramid);
+
+    // Layered Red-Rock Canyon Mesa & Natural Arch
+    const mesaBase = new THREE.Mesh(
+      new THREE.CylinderGeometry(4.2, 5.4, 5.5, 9),
+      createMatteMaterial("#c86d51")
+    );
+    mesaBase.position.set(-12, 0.2, -16);
+    const mesaTop = new THREE.Mesh(
+      new THREE.CylinderGeometry(3.4, 4.1, 3.2, 9),
+      createMatteMaterial("#dc8565")
+    );
+    mesaTop.position.set(-12, 4.2, -16);
+    biomePropsGroup.add(mesaBase, mesaTop);
+
+    const arch = new THREE.Mesh(
+      new THREE.TorusGeometry(4.8, 0.95, 10, 24, Math.PI),
+      createMatteMaterial("#d47a57")
+    );
+    arch.position.set(0, -1.8, -18);
     biomePropsGroup.add(arch);
 
-    for (let i = 0; i < 10; i++) {
-      const a = (i / 10) * Math.PI * 2 + 0.3;
-      const dist = 13 + (i % 3) * 4;
+    // Oasis Water Pool & Palm Trees
+    const oasis = new THREE.Mesh(
+      new THREE.CylinderGeometry(3.8, 3.8, 0.14, 24),
+      createMatteMaterial("#48cae4", 0.85)
+    );
+    oasis.position.set(10.5, -1.66, 8.5);
+    biomePropsGroup.add(oasis);
+
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2 + 0.3;
+      const dist = 12.5 + (i % 3) * 3.8;
       const cactus = new THREE.Group();
-      const cMat = createMatteMaterial("#6a994e");
-      const mainStem = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 2.8, 10), cMat);
-      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 1.2, 8), cMat);
-      arm.position.set(0.45, 0.3, 0);
-      arm.rotation.z = -Math.PI / 4;
-      cactus.add(mainStem, arm);
-      cactus.position.set(Math.cos(a) * dist, -0.6, Math.sin(a) * dist);
+      const cMat = createMatteMaterial("#588157");
+      const mainStem = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 3.0, 10), cMat);
+      const arm1 = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 1.3, 8), cMat);
+      arm1.position.set(0.45, 0.35, 0);
+      arm1.rotation.z = -Math.PI / 4;
+      const arm2 = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 1.1, 8), cMat);
+      arm2.position.set(-0.42, 0.1, 0);
+      arm2.rotation.z = Math.PI / 4;
+      cactus.add(mainStem, arm1, arm2);
+      cactus.position.set(Math.cos(a) * dist, -0.5, Math.sin(a) * dist);
       biomePropsGroup.add(cactus);
     }
+
+    spawnAmbientParticles("#ffd166", 24, 14);
   } else if (biome === "underwater") {
-    // Ocean Seabed, Coral Reef Clusters, Kelp Stalks & Rising Bubbles
+    // Abyssal Coral Reef, Kelp Forests, Seafloor Arches & Rising Bubbles
     const seabed = new THREE.Mesh(
       new THREE.CylinderGeometry(28, 30, 1.5, 36),
-      createMatteMaterial("#d8e2dc")
+      createMatteMaterial("#cad2c5")
     );
     seabed.position.y = -2.5;
     biomePropsGroup.add(seabed);
 
-    const coralColors = ["#ff8fa3", "#ffb703", "#a8dadc", "#cdb4db"];
-    for (let i = 0; i < 18; i++) {
-      const a = (i / 18) * Math.PI * 2;
-      const dist = 10.5 + (i % 4) * 3;
+    const coralColors = ["#ff758f", "#ffb703", "#48cae4", "#b5179e"];
+    for (let i = 0; i < 22; i++) {
+      const a = (i / 22) * Math.PI * 2;
+      const dist = 10.5 + (i % 4) * 3.2;
       const coral = new THREE.Mesh(
-        new THREE.DodecahedronGeometry(0.95 + (i % 3) * 0.4),
+        new THREE.DodecahedronGeometry(0.95 + (i % 3) * 0.45),
         createMatteMaterial(coralColors[i % coralColors.length])
       );
-      coral.position.set(Math.cos(a) * dist, -1.3, Math.sin(a) * dist);
+      coral.position.set(Math.cos(a) * dist, -1.25, Math.sin(a) * dist);
       biomePropsGroup.add(coral);
     }
 
-    spawnAmbientParticles("#ffffff", 34, 14);
+    spawnAmbientParticles("#ffffff", 36, 14);
   } else if (biome === "meadows") {
-    // Rolling Pastel Hills, Distant Snow-Capped Mountains & Wildflowers
+    // Alpine Meadows, Rolling Terraced Hills & Snow-Capped Mountain Range
     const meadowFloor = new THREE.Mesh(
       new THREE.CylinderGeometry(28, 30, 1.5, 36),
-      createMatteMaterial("#b5e48c")
+      createMatteMaterial("#99d98c")
     );
     meadowFloor.position.y = -2.5;
     biomePropsGroup.add(meadowFloor);
 
-    // Distant Alpine Peaks
-    for (let i = 0; i < 10; i++) {
-      const a = (i / 10) * Math.PI * 2;
-      const dist = 23;
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const dist = 22.5;
       const peak = new THREE.Mesh(
-        new THREE.ConeGeometry(5.2, 11, 7),
-        createMatteMaterial("#90a4ae")
+        new THREE.ConeGeometry(5.4, 11.5, 8),
+        createMatteMaterial("#7f8c8d")
       );
-      peak.position.set(Math.cos(a) * dist, 2.5, Math.sin(a) * dist);
+      peak.position.set(Math.cos(a) * dist, 2.6, Math.sin(a) * dist);
       const snow = new THREE.Mesh(
-        new THREE.ConeGeometry(2.4, 4.8, 7),
+        new THREE.ConeGeometry(2.5, 5.0, 8),
         createMatteMaterial("#ffffff")
       );
-      snow.position.set(Math.cos(a) * dist, 5.7, Math.sin(a) * dist);
+      snow.position.set(Math.cos(a) * dist, 5.9, Math.sin(a) * dist);
       biomePropsGroup.add(peak, snow);
     }
   } else if (biome === "paper") {
-    // Drafting Studio Desk beneath the Sketchpad
+    // Drafting Studio Wood Desk under the Sketch Sheet
     const desk = new THREE.Mesh(
-      new THREE.BoxGeometry(22, 0.8, 18),
-      createMatteMaterial("#d6ccc2")
+      new THREE.BoxGeometry(24, 0.8, 20),
+      createMatteMaterial("#c9ada7")
     );
-    desk.position.y = -1.9;
+    desk.position.y = -1.95;
     biomePropsGroup.add(desk);
   }
 }
 
 function spawnAmbientParticles(hexColor, count, radius) {
-  const mat = createMatteMaterial(hexColor, 0.78);
+  const mat = createMatteMaterial(hexColor, 0.82);
   for (let i = 0; i < count; i++) {
     const orb = new THREE.Mesh(new THREE.SphereGeometry(0.12 + (i % 3) * 0.05, 8, 8), mat);
     const a = (i / count) * Math.PI * 2;
@@ -707,7 +970,9 @@ function spawnAmbientParticles(hexColor, count, radius) {
   }
 }
 
-// Create 3D Striker Mesh
+// ----------------------------------------------------------------------------
+// 5. INDEPENDENT STRIKER GEOMETRY (X, O, CRYSTAL, TORUS, OBELISK, SPHERE)
+// ----------------------------------------------------------------------------
 function createStrikerMesh(player, cellData, isSelectedForRemoval = false) {
   const group = new THREE.Group();
   const colorHex = isSelectedForRemoval
@@ -715,55 +980,57 @@ function createStrikerMesh(player, cellData, isSelectedForRemoval = false) {
     : player === 1
     ? state.p1Color
     : state.p2Color;
+  const shapeType = player === 1 ? state.p1Shape : state.p2Shape;
   const mat = createMatteMaterial(colorHex);
   const scale = (cellData.cellSize / 2.55) * 0.84;
 
   if (state.biome === "paper") {
-    if (player === 1) {
-      const b1 = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.08, 0.14), mat);
-      b1.rotation.y = Math.PI / 4 + 0.08;
-      const b2 = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.08, 0.14), mat);
-      b2.rotation.y = -Math.PI / 4 - 0.06;
-      group.add(b1, b2);
-    } else {
-      const segs = 10;
-      for (let i = 0; i < segs; i++) {
-        const a = (i / segs) * Math.PI * 2;
-        const r = 0.58 + Math.sin(i * 2.1) * 0.05;
-        const dot = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.08, 0.12), mat);
-        dot.position.set(Math.cos(a) * r, 0, Math.sin(a) * r);
-        dot.rotation.y = -a;
-        group.add(dot);
+    // Continuous Unbroken Hand-Drawn Crooked Sketch Strokes
+    if (shapeType === "x") {
+      const diag1 = [];
+      const diag2 = [];
+      for (let i = 0; i <= 8; i++) {
+        const t = -0.58 + (i / 8) * 1.16;
+        const wobble1 = Math.sin(i * 1.3) * 0.045;
+        const wobble2 = Math.cos(i * 1.4) * 0.045;
+        diag1.push(new THREE.Vector3(t + wobble1, 0.04, t - wobble1));
+        diag2.push(new THREE.Vector3(t + wobble2, 0.04, -t + wobble2));
       }
-    }
-  } else if (state.shapeStyle === "xo") {
-    if (player === 1) {
-      const bar1 = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.34, 0.34), mat);
-      bar1.rotation.y = Math.PI / 4;
-      const bar2 = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.34, 0.34), mat);
-      bar2.rotation.y = -Math.PI / 4;
-      group.add(bar1, bar2);
+      group.add(createContinuousCrookedStroke(diag1, 0.068, mat, false));
+      group.add(createContinuousCrookedStroke(diag2, 0.068, mat, false));
     } else {
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.2, 14, 28), mat);
-      ring.rotation.x = Math.PI / 2;
-      group.add(ring);
+      // Unbroken continuous crooked circle loop
+      const loopPoints = [];
+      const steps = 20;
+      for (let i = 0; i < steps; i++) {
+        const a = (i / steps) * Math.PI * 2;
+        const r = 0.56 + Math.sin(a * 3 + player) * 0.05 + Math.cos(a * 5) * 0.025;
+        loopPoints.push(new THREE.Vector3(Math.cos(a) * r, 0.04, Math.sin(a) * r));
+      }
+      group.add(createContinuousCrookedStroke(loopPoints, 0.068, mat, true));
     }
-  } else if (state.shapeStyle === "poly") {
-    const mesh =
-      player === 1
-        ? new THREE.Mesh(new THREE.OctahedronGeometry(0.68), mat)
-        : new THREE.Mesh(new THREE.TorusKnotGeometry(0.42, 0.14, 48, 12), mat);
-    group.add(mesh);
-  } else {
-    const mesh =
-      player === 1
-        ? new THREE.Mesh(new THREE.ConeGeometry(0.65, 1.1, 5), mat)
-        : new THREE.Mesh(new THREE.SphereGeometry(0.6, 20, 20), mat);
-    group.add(mesh);
+  } else if (shapeType === "x") {
+    const bar1 = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.35, 0.35), mat);
+    bar1.rotation.y = Math.PI / 4;
+    const bar2 = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.35, 0.35), mat);
+    bar2.rotation.y = -Math.PI / 4;
+    group.add(bar1, bar2);
+  } else if (shapeType === "o") {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.56, 0.21, 16, 32), mat);
+    ring.rotation.x = Math.PI / 2;
+    group.add(ring);
+  } else if (shapeType === "crystal") {
+    group.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.68), mat));
+  } else if (shapeType === "torus") {
+    group.add(new THREE.Mesh(new THREE.TorusKnotGeometry(0.42, 0.14, 48, 12), mat));
+  } else if (shapeType === "obelisk") {
+    group.add(new THREE.Mesh(new THREE.ConeGeometry(0.62, 1.15, 5), mat));
+  } else if (shapeType === "sphere") {
+    group.add(new THREE.Mesh(new THREE.SphereGeometry(0.6, 22, 22), mat));
   }
 
   group.scale.setScalar(scale);
-  group.position.set(cellData.x, state.biome === "paper" ? 0.08 : 0.38, cellData.z);
+  group.position.set(cellData.x, state.biome === "paper" ? 0.06 : 0.38, cellData.z);
   group.userData = { row: cellData.row, col: cellData.col, player };
   return group;
 }
@@ -792,7 +1059,7 @@ function rebuildAllMarks() {
 }
 
 // ----------------------------------------------------------------------------
-// 5. CORE GAMEPLAY ENGINE (N×N WIN DETECTION, THREE POWER MAX, DUELS & AI)
+// 6. CORE GAMEPLAY ENGINE, VICTORY BANNER & AUTOMATED AI
 // ----------------------------------------------------------------------------
 function initBoardState(resetScores = false) {
   const N = state.gridSize;
@@ -803,6 +1070,9 @@ function initBoardState(resetScores = false) {
   state.p2MarksQueue = [];
   state.selectedRemovalIndex = null;
   state.currentAttack = ATTACK_TYPES[Math.floor(Math.random() * ATTACK_TYPES.length)];
+
+  document.getElementById("modal-victory").classList.add("hidden");
+  document.getElementById("btn-return-victory").classList.add("hidden");
 
   if (resetScores) {
     state.p1Score = 0;
@@ -886,7 +1156,6 @@ function executeTurnMove(row, col) {
   const queue = player === 1 ? state.p1MarksQueue : state.p2MarksQueue;
   const cellVal = state.board[row][col];
 
-  // Three Power Max Mode: Max 3 active strikes per player
   if (state.rule === "threepower" && queue.length >= 3) {
     if (cellVal === player) {
       const idx = queue.findIndex((m) => m.r === row && m.c === col);
@@ -1069,18 +1338,26 @@ function concludeRound(winner) {
   const p1Label = state.p1Name || "Player 1";
   const p2Label = state.p2Name || "Player 2";
 
+  let headline = "";
+  let subtext = "";
+
   if (winner === 1) {
     state.p1Score++;
     state.leaderboard[p1Label] = (state.leaderboard[p1Label] || 0) + 1;
-    updateTurnBanner(`${p1Label} wins the round!`);
+    headline = `${p1Label} Wins the Match!`;
+    subtext = `${p1Label} aligned ${state.gridSize} strikes in a row across the AetherGrid.`;
   } else if (winner === 2) {
     state.p2Score++;
     state.leaderboard[p2Label] = (state.leaderboard[p2Label] || 0) + 1;
-    updateTurnBanner(`${p2Label} wins the round!`);
+    headline = `${p2Label} Wins the Match!`;
+    subtext = `${p2Label} aligned ${state.gridSize} strikes in a row across the AetherGrid.`;
   } else {
     state.leaderboard.Ties = (state.leaderboard.Ties || 0) + 1;
-    updateTurnBanner("Round ended in a tactical draw!");
+    headline = "Tactical Stalemate (Draw)!";
+    subtext = "Neither contender ceded a straight line on the matrix.";
   }
+
+  updateTurnBanner(headline);
 
   state.duelHistory.push({
     round: state.duelRound,
@@ -1101,28 +1378,56 @@ function concludeRound(winner) {
   localStorage.setItem(STORAGE_KEYS.LEADERBOARD, JSON.stringify(state.leaderboard));
   updateHUD();
 
-  if (state.duelRound < state.duelTotalRounds) {
-    setTimeout(() => {
-      state.duelRound++;
-      if (state.mode === "ai-duel") {
-        const tierIndex = Math.min(4, Math.floor((state.duelRound - 1) / 3));
-        state.difficulty = DIFF_ORDER[tierIndex];
-      }
-      initBoardState(false);
-    }, 1450);
-  } else if (state.duelTotalRounds > 1) {
-    setTimeout(() => {
-      openStatsModal(
-        `Duel Complete (${state.duelTotalRounds} Games) — Final Score ${state.p1Score} : ${state.p2Score}`
-      );
-    }, 1150);
-  }
+  // Show Victory Banner with Rematch / Inspect Board / Return to Homescreen
+  document.getElementById("victory-headline").textContent = headline;
+  document.getElementById("victory-subtext").textContent =
+    state.duelTotalRounds > 1
+      ? `${subtext} (Duel Round ${state.duelRound}/${state.duelTotalRounds} • Score ${state.p1Score}:${state.p2Score})`
+      : subtext;
+  document.getElementById("btn-victory-rematch").textContent =
+    state.duelRound < state.duelTotalRounds ? "Next Duel Round" : "Rematch";
+  document.getElementById("modal-victory").classList.remove("hidden");
 }
 
 // ----------------------------------------------------------------------------
-// 6. RANDOM ATTACKS, THEME PLAGUE TRANSITION & HUD TELEMETRY
+// 7. CAMERA POV MODES, TOAST NOTIFICATION & PLAGUE THEME SWITCH
 // ----------------------------------------------------------------------------
 let attackPulseTime = 0;
+let toastTimeout = null;
+
+function applyCameraMode(index, showNotification = true) {
+  state.camModeIndex = index % CAMERA_MODES.length;
+  const preset = CAMERA_MODES[state.camModeIndex];
+  targetCamPhi = preset.defaultPhi;
+  targetCamTheta = preset.defaultTheta;
+  targetCamRadius = preset.radius;
+
+  // Sync Initiation & Pause Camera Buttons
+  ["init-cam-select", "pause-cam-select"].forEach((id) => {
+    const group = document.getElementById(id);
+    if (!group) return;
+    group.querySelectorAll(".seg-btn").forEach((btn) => {
+      btn.classList.toggle("active", parseInt(btn.dataset.cam, 10) === state.camModeIndex);
+    });
+  });
+
+  sfx.playCameraSwitch();
+  updateHUD();
+
+  if (showNotification) {
+    const toast = document.getElementById("camera-toast");
+    document.getElementById("camera-toast-name").textContent = preset.name;
+    toast.classList.remove("hidden");
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+      toast.classList.add("hidden");
+    }, 2200);
+  }
+}
+
+function cycleCameraPOV() {
+  applyCameraMode((state.camModeIndex + 1) % CAMERA_MODES.length, true);
+}
 
 function triggerRandomAttackVisual() {
   state.currentAttack = ATTACK_TYPES[Math.floor(Math.random() * ATTACK_TYPES.length)];
@@ -1149,10 +1454,9 @@ function triggerPlagueThemeSwitch() {
     void el.offsetWidth;
     setTimeout(() => {
       el.classList.add("section-plague");
-    }, idx * 24);
+    }, idx * 22);
   });
 
-  // If the Analytics Graph modal is open, re-render with crisp black/white labels
   if (!document.getElementById("modal-stats").classList.contains("hidden")) {
     drawStatsChart();
   }
@@ -1168,7 +1472,7 @@ function updateTurnBanner(customText) {
   const bannerText = document.getElementById("turn-text");
   const dot = document.getElementById("turn-dot");
   const activeName = state.currentPlayer === 1 ? state.p1Name : state.p2Name;
-  const symbol = state.currentPlayer === 1 ? "X / S1" : "O / S2";
+  const activeShape = (state.currentPlayer === 1 ? state.p1Shape : state.p2Shape).toUpperCase();
   dot.style.backgroundColor = state.currentPlayer === 1 ? state.p1Color : state.p2Color;
 
   if (customText) {
@@ -1178,15 +1482,15 @@ function updateTurnBanner(customText) {
 
   const queue = state.currentPlayer === 1 ? state.p1MarksQueue : state.p2MarksQueue;
   if (state.rule === "threepower" && queue.length >= 3 && state.selectedRemovalIndex === null) {
-    bannerText.textContent = `${activeName}'s Turn (${symbol}) — Tap 1 of your 3 marks to relocate`;
+    bannerText.textContent = `${activeName}'s Turn (${activeShape}) — Tap 1 of your 3 marks to relocate`;
   } else {
-    bannerText.textContent = `${activeName}'s Turn (${symbol})`;
+    bannerText.textContent = `${activeName}'s Turn (${activeShape})`;
   }
 }
 
 function updateHUD() {
-  document.getElementById("hud-p1-name").textContent = state.p1Name;
-  document.getElementById("hud-p2-name").textContent = state.p2Name;
+  document.getElementById("hud-p1-name").textContent = `${state.p1Name} (${state.p1Shape.toUpperCase()})`;
+  document.getElementById("hud-p2-name").textContent = `${state.p2Name} (${state.p2Shape.toUpperCase()})`;
   document.getElementById("hud-p1-score").textContent = state.p1Score;
   document.getElementById("hud-p2-score").textContent = state.p2Score;
   document.getElementById("hud-p1-marks").textContent =
@@ -1210,7 +1514,7 @@ function updateHUD() {
   document.getElementById("hud-highscore").textContent = state.highScore;
   document.getElementById("hud-besttime").textContent = formatSeconds(state.bestTime);
   document.getElementById("hud-attack-name").textContent = state.currentAttack;
-  document.getElementById("hud-cam-mode").textContent = camModes[camModeIndex];
+  document.getElementById("hud-cam-mode").textContent = CAMERA_MODES[state.camModeIndex].name;
   document.getElementById("hud-sky-speed").textContent = `${state.skySpeed.toFixed(1)}x`;
 
   document.getElementById("init-high-score").textContent = state.highScore;
@@ -1220,7 +1524,7 @@ function updateHUD() {
 }
 
 // ----------------------------------------------------------------------------
-// 7. UN-SQUISHED HIGH-DPI ANALYTICS GRAPH & LEADERBOARD RENDERER
+// 8. ANALYTICS GRAPH & LEADERBOARD RENDERER
 // ----------------------------------------------------------------------------
 function openStatsModal(customSubtitle) {
   const modal = document.getElementById("modal-stats");
@@ -1277,7 +1581,6 @@ function drawStatsChart() {
   const plotW = W - padLeft - padRight;
   const plotH = H - padTop - padBottom;
 
-  // Horizontal Reference Grid Lines
   ctx.strokeStyle = gridColor;
   ctx.lineWidth = 1;
   ctx.fillStyle = textColor;
@@ -1293,8 +1596,7 @@ function drawStatsChart() {
     ctx.fillText(String(val), 10, y + 4);
   }
 
-  // Proportional Un-Squished Bars
-  const barColors = [state.p1Color, state.p2Color, "#a799ff", "#ffd166", "#72efdd"];
+  const barColors = [state.p1Color, state.p2Color, "#9b5de5", "#ff9f1c", "#10b981"];
   const slotW = plotW / Math.max(1, entries.length);
   const barW = Math.min(56, slotW * 0.56);
 
@@ -1320,8 +1622,53 @@ function drawStatsChart() {
 }
 
 // ----------------------------------------------------------------------------
-// 8. DEVICE AUTO-DETECTION & THREE-STEP SCREEN WIRING
+// 9. SWATCH PALETTE BUILDER, PAUSE TOGGLE (P KEY) & UI WIRING
 // ----------------------------------------------------------------------------
+function renderSwatchPalettes() {
+  const buildRow = (containerId, swatches, currentHex, onSelect) => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = "";
+    swatches.forEach((sw) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = `pastel-swatch ${
+        sw.hex.toLowerCase() === currentHex.toLowerCase() ? "active" : ""
+      }`;
+      btn.style.backgroundColor = sw.hex;
+      btn.title = sw.name;
+      btn.addEventListener("click", () => {
+        sfx.playPlace(false, 1);
+        onSelect(sw.hex);
+        renderSwatchPalettes();
+        buildBoardAndBiome();
+        updateHUD();
+      });
+      container.appendChild(btn);
+    });
+  };
+
+  buildRow("swatches-p1", STRIKER_SWATCHES, state.p1Color, (hex) => (state.p1Color = hex));
+  buildRow("swatches-p2", STRIKER_SWATCHES, state.p2Color, (hex) => (state.p2Color = hex));
+  buildRow("swatches-board", BOARD_SWATCHES, state.boardColor, (hex) => (state.boardColor = hex));
+
+  buildRow("pause-swatches-p1", STRIKER_SWATCHES, state.p1Color, (hex) => (state.p1Color = hex));
+  buildRow("pause-swatches-p2", STRIKER_SWATCHES, state.p2Color, (hex) => (state.p2Color = hex));
+  buildRow(
+    "pause-swatches-board",
+    BOARD_SWATCHES,
+    state.boardColor,
+    (hex) => (state.boardColor = hex)
+  );
+}
+
+function togglePauseMenu() {
+  if (state.screen !== "game") return;
+  state.paused = !state.paused;
+  document.getElementById("modal-pause").classList.toggle("hidden", !state.paused);
+  sfx.playCameraSwitch();
+}
+
 function autoDetectDevice() {
   const isTouch =
     "ontouchstart" in window ||
@@ -1333,7 +1680,7 @@ function autoDetectDevice() {
   document.getElementById("card-touch").classList.toggle("selected", isTouch);
   document.getElementById("device-autodetect-msg").textContent = isTouch
     ? "Auto-Detected: Integrated Touch Unit (Mobile / Tablet / Handheld Hybrid)"
-    : "Auto-Detected: Desktop Keyboard & Mouse Workstation";
+    : "Auto-Detected: Desktop / Laptop Workstation (Press P to Pause in-game)";
 }
 
 function bindSegmentedGroup(containerId, callback) {
@@ -1366,10 +1713,15 @@ function switchScreen(target) {
   document.getElementById("turn-banner").classList.toggle("hidden", !inGame);
   document.getElementById("btn-pause-open").classList.toggle("hidden", !inGame);
   document.getElementById("device-action-dock").classList.toggle("hidden", !inGame);
+  if (!inGame) {
+    document.getElementById("modal-victory").classList.add("hidden");
+    document.getElementById("btn-return-victory").classList.add("hidden");
+  }
 }
 
 function wireUIEvents() {
   autoDetectDevice();
+  renderSwatchPalettes();
 
   if (localStorage.getItem(STORAGE_KEYS.SAVED_MATCH)) {
     document.getElementById("saved-session-bar").classList.remove("hidden");
@@ -1384,7 +1736,14 @@ function wireUIEvents() {
     });
   });
 
-  // Navigation between Initiation Screen 1, Screen 2A (Mode), Screen 2B (Customize), and Game
+  bindSegmentedGroup("init-cam-select", (data) => {
+    applyCameraMode(parseInt(data.cam, 10), true);
+  });
+
+  bindSegmentedGroup("pause-cam-select", (data) => {
+    applyCameraMode(parseInt(data.cam, 10), true);
+  });
+
   document.getElementById("btn-to-mode-screen").addEventListener("click", () => {
     sfx.playCameraSwitch();
     switchScreen("mode");
@@ -1403,7 +1762,6 @@ function wireUIEvents() {
     switchScreen("mode");
   });
 
-  // 360° World Peek Toggle on Customization Screen
   document.getElementById("btn-toggle-preview-peek").addEventListener("click", (e) => {
     const card = document.getElementById("customize-modal-card");
     const isPeeking = card.classList.toggle("peek-mode");
@@ -1418,7 +1776,7 @@ function wireUIEvents() {
       (state.mode.startsWith("ai") ? "Aether AI" : "Player 2");
     initBoardState(true);
     switchScreen("game");
-    sfx.playCameraSwitch();
+    applyCameraMode(state.camModeIndex, true);
   });
 
   document
@@ -1450,8 +1808,13 @@ function wireUIEvents() {
     buildBoardAndBiome();
   });
 
-  bindSegmentedGroup("shape-select", (data) => {
-    state.shapeStyle = data.shape;
+  bindSegmentedGroup("p1-shape-select", (data) => {
+    state.p1Shape = data.shape;
+    rebuildAllMarks();
+  });
+
+  bindSegmentedGroup("p2-shape-select", (data) => {
+    state.p2Shape = data.shape;
     rebuildAllMarks();
   });
 
@@ -1464,38 +1827,33 @@ function wireUIEvents() {
     state.skyTime = state.skyStart === "day" ? 0.25 : 0.75;
   });
 
-  // Color Pickers Sync
-  const syncColors = (p1, p2, board) => {
-    state.p1Color = p1;
-    state.p2Color = p2;
-    state.boardColor = board;
-    document.getElementById("color-p1").value = p1;
-    document.getElementById("color-p2").value = p2;
-    document.getElementById("color-board").value = board;
-    document.getElementById("pause-color-p1").value = p1;
-    document.getElementById("pause-color-p2").value = p2;
-    document.getElementById("pause-color-board").value = board;
-    buildBoardAndBiome();
-  };
-
-  ["color-p1", "color-p2", "color-board"].forEach((id) => {
-    document.getElementById(id).addEventListener("input", () => {
-      syncColors(
-        document.getElementById("color-p1").value,
-        document.getElementById("color-p2").value,
-        document.getElementById("color-board").value
-      );
-    });
+  // Victory Modal Buttons (Rematch / Inspect Board / Return to Homescreen)
+  document.getElementById("btn-victory-rematch").addEventListener("click", () => {
+    if (state.duelRound < state.duelTotalRounds) {
+      state.duelRound++;
+      if (state.mode === "ai-duel") {
+        const tierIndex = Math.min(4, Math.floor((state.duelRound - 1) / 3));
+        state.difficulty = DIFF_ORDER[tierIndex];
+      }
+      initBoardState(false);
+    } else {
+      initBoardState(false);
+    }
   });
 
-  ["pause-color-p1", "pause-color-p2", "pause-color-board"].forEach((id) => {
-    document.getElementById(id).addEventListener("input", () => {
-      syncColors(
-        document.getElementById("pause-color-p1").value,
-        document.getElementById("pause-color-p2").value,
-        document.getElementById("pause-color-board").value
-      );
-    });
+  document.getElementById("btn-victory-inspect").addEventListener("click", () => {
+    document.getElementById("modal-victory").classList.add("hidden");
+    document.getElementById("btn-return-victory").classList.remove("hidden");
+    applyCameraMode(0, true); // Switch to Orbital 360° Free for full inspection
+  });
+
+  document.getElementById("btn-return-victory").addEventListener("click", () => {
+    document.getElementById("modal-victory").classList.remove("hidden");
+  });
+
+  document.getElementById("btn-victory-home").addEventListener("click", () => {
+    document.getElementById("modal-victory").classList.add("hidden");
+    switchScreen("device");
   });
 
   // Individual HUD Slide-Out & Smooth Reflow
@@ -1517,15 +1875,9 @@ function wireUIEvents() {
   });
 
   // Pause Studio & Save Progress
-  document.getElementById("btn-pause-open").addEventListener("click", () => {
-    state.paused = true;
-    document.getElementById("modal-pause").classList.remove("hidden");
-  });
-
-  document.getElementById("btn-resume-game").addEventListener("click", () => {
-    state.paused = false;
-    document.getElementById("modal-pause").classList.add("hidden");
-  });
+  document.getElementById("btn-pause-open").addEventListener("click", togglePauseMenu);
+  document.getElementById("btn-dock-pause").addEventListener("click", togglePauseMenu);
+  document.getElementById("btn-resume-game").addEventListener("click", togglePauseMenu);
 
   bindSegmentedGroup("pause-biome-select", (data) => {
     state.biome = data.biome;
@@ -1554,6 +1906,7 @@ function wireUIEvents() {
     const raw = localStorage.getItem(STORAGE_KEYS.SAVED_MATCH);
     if (!raw) return;
     Object.assign(state, JSON.parse(raw));
+    renderSwatchPalettes();
     buildBoardAndBiome();
     updateHUD();
     switchScreen("game");
@@ -1586,11 +1939,13 @@ function wireUIEvents() {
     .getElementById("btn-dock-attack")
     .addEventListener("click", triggerRandomAttackVisual);
 
-  // Keyboard Shortcuts (W/S Sky Cycle, C Camera POV)
+  // Keyboard Shortcuts: P to Pause, W/S Sky Speed, C Camera Mode
   window.addEventListener("keydown", (e) => {
     if (e.target.tagName === "INPUT") return;
     const key = e.key.toLowerCase();
-    if (key === "w") {
+    if (key === "p") {
+      togglePauseMenu();
+    } else if (key === "w") {
       state.skySpeed = Math.min(8.0, state.skySpeed + 0.4);
       updateHUD();
     } else if (key === "s") {
@@ -1602,14 +1957,8 @@ function wireUIEvents() {
   });
 }
 
-function cycleCameraPOV() {
-  camModeIndex = (camModeIndex + 1) % camModes.length;
-  sfx.playCameraSwitch();
-  updateHUD();
-}
-
 // ----------------------------------------------------------------------------
-// 9. 360° POINTER ORBIT + RAYCASTING INTERACTION
+// 10. 360° FREE POINTER ORBIT IN ALL CAMERA MODES + RAYCASTING
 // ----------------------------------------------------------------------------
 const raycaster = new THREE.Raycaster();
 const pointerNDC = new THREE.Vector2();
@@ -1625,8 +1974,9 @@ window.addEventListener("pointermove", (e) => {
   const dx = e.clientX - prevPointer.x;
   const dy = e.clientY - prevPointer.y;
   prevPointer = { x: e.clientX, y: e.clientY };
-  camTheta -= dx * 0.0075;
-  camPhi = Math.max(0.25, Math.min(1.42, camPhi - dy * 0.0065));
+  // Allow full 360° rotation in every camera mode
+  targetCamTheta -= dx * 0.008;
+  targetCamPhi = Math.max(0.12, Math.min(1.46, targetCamPhi - dy * 0.0068));
 });
 
 window.addEventListener("pointerup", (e) => {
@@ -1657,7 +2007,7 @@ window.addEventListener("resize", () => {
 });
 
 // ----------------------------------------------------------------------------
-// 10. MAIN RENDER LOOP & CHRONOMETER
+// 11. MAIN RENDER LOOP & CHRONOMETER
 // ----------------------------------------------------------------------------
 setInterval(() => {
   if (state.screen === "game" && !state.paused && !state.gameOver) {
@@ -1681,7 +2031,7 @@ function animate(now) {
   }
 
   const daylightFactor = Math.sin(state.skyTime * Math.PI * 2) * 0.5 + 0.5;
-  const palette = BIOME_PALETTES[state.biome] || BIOME_PALETTES.forest;
+  const palette = BIOME_PALETTES[state.biome] || BIOME_PALETTES.gothic_balcony;
   const dayCol = new THREE.Color(palette.daySky);
   const nightCol = new THREE.Color(palette.nightSky);
   const currentSky = nightCol.clone().lerp(dayCol, daylightFactor);
@@ -1700,7 +2050,7 @@ function animate(now) {
     cloud.position.z = Math.sin(cloud.userData.angle) * cloud.userData.dist;
   });
 
-  // 3. Animate Ambient Biome Particles (Fireflies / Bubbles / Neon Motes)
+  // 3. Animate Ambient Biome Particles
   ambientParticlesGroup.children.forEach((orb) => {
     orb.position.y =
       orb.userData.baseY +
@@ -1734,27 +2084,20 @@ function animate(now) {
     worldGroup.rotation.set(0, 0, 0);
   }
 
-  // 6. Camera POV Modes + Continuous 360° Scenic Orbit on Setup Screens
+  // 6. Smooth 360° Orbit Interpolation Across All Named Camera Modes
   if (state.screen !== "game" && !isDraggingBoard) {
-    camTheta += dt * 0.22;
+    targetCamTheta += dt * 0.22;
   }
 
-  const mode = camModes[camModeIndex];
-  if (mode === "Orbit 360°") {
-    camera.position.set(
-      camRadius * Math.sin(camPhi) * Math.cos(camTheta),
-      camRadius * Math.cos(camPhi),
-      camRadius * Math.sin(camPhi) * Math.sin(camTheta)
-    );
-  } else if (mode === "Top-Down Tactical") {
-    camera.position.lerp(new THREE.Vector3(0, 16.5, 0.01), 0.08);
-  } else if (mode === "Scenic Vista") {
-    camera.position.lerp(new THREE.Vector3(0, 6.2, 16.8), 0.08);
-  } else if (mode === "Contender 1 POV") {
-    camera.position.lerp(new THREE.Vector3(0, 8.5, 13.5), 0.08);
-  } else if (mode === "Contender 2 POV") {
-    camera.position.lerp(new THREE.Vector3(0, 8.5, -13.5), 0.08);
-  }
+  camTheta += (targetCamTheta - camTheta) * 0.14;
+  camPhi += (targetCamPhi - camPhi) * 0.14;
+  camRadius += (targetCamRadius - camRadius) * 0.14;
+
+  camera.position.set(
+    camRadius * Math.sin(camPhi) * Math.cos(camTheta),
+    camRadius * Math.cos(camPhi),
+    camRadius * Math.sin(camPhi) * Math.sin(camTheta)
+  );
   camera.lookAt(0, 0, 0);
 
   renderer.render(scene, camera);

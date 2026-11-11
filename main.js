@@ -1,9 +1,10 @@
 /* ============================================================================
-   AETHERGRID — 3D TACTICAL ALIGNMENT ENGINE (v4 FAIL-SAFE RENDERING EDITION)
-   Gothic & Scenic 3D Biomes + Continuous Crooked Sketching + Web Audio Synth
+   AETHERGRID — 3D TACTICAL ALIGNMENT ENGINE (v5 COMPLETE 13-BIOME EDITION)
+   Royal Sanctum, Cyberpunk Drift, Angelic Cloud, Pastel Lagoon, Lo-Fi Cafe,
+   Gothic Balcony, Gothic Castle, Forest, Cyberpunk Terrace, Desert, Reef,
+   Meadows & Sketch Paper (Continuous Crooked Pencil Tubes) + Web Audio Synth
    ============================================================================ */
 
-// Null-safe DOM Helpers so cached HTML/JS mismatches can never halt the 3D loop
 const $ = (id) => document.getElementById(id);
 const on = (id, evt, handler) => {
   const el = $(id);
@@ -156,7 +157,7 @@ class ProceduralSoundEngine {
 const sfx = new ProceduralSoundEngine();
 
 // ----------------------------------------------------------------------------
-// 2. CURATED HIGH-CONTRAST PASTEL PALETTES & APPLICATION STATE
+// 2. CURATED HIGH-CONTRAST PASTEL PALETTES & 13 BIOME DEFINITIONS
 // ----------------------------------------------------------------------------
 const STRIKER_SWATCHES = [
   { name: "Rose Coral", hex: "#ff5c8a" },
@@ -201,6 +202,41 @@ const CAMERA_MODES = [
 ];
 
 const BIOME_PALETTES = {
+  royal: {
+    daySky: "#e5defc",
+    nightSky: "#1a1433",
+    pedestal: "#b8a4e8",
+    gridLine: "#3b2d66",
+    frameRim: "#4a387d"
+  },
+  cyberpunk_drift: {
+    daySky: "#d4f2f9",
+    nightSky: "#0d0c22",
+    pedestal: "#38416e",
+    gridLine: "#ff3c88",
+    frameRim: "#00c4b4"
+  },
+  angelic: {
+    daySky: "#f2f7ff",
+    nightSky: "#1f2642",
+    pedestal: "#f6e7c1",
+    gridLine: "#526b9c",
+    frameRim: "#d4af37"
+  },
+  lagoon: {
+    daySky: "#d8f7f2",
+    nightSky: "#122936",
+    pedestal: "#f4deac",
+    gridLine: "#236e67",
+    frameRim: "#2b8a82"
+  },
+  cafe: {
+    daySky: "#f5ebe1",
+    nightSky: "#241915",
+    pedestal: "#b08968",
+    gridLine: "#4a3222",
+    frameRim: "#5c3d28"
+  },
   gothic_balcony: {
     daySky: "#dcd3f2",
     nightSky: "#151126",
@@ -269,7 +305,7 @@ const state = {
   rule: "classic",
   gridSize: 3,
   difficulty: "medium",
-  biome: "gothic_balcony",
+  biome: "royal",
   p1Shape: "x",
   p2Shape: "o",
   p1Name: "Astra",
@@ -318,10 +354,10 @@ const state = {
   })()
 };
 
-// Sanitize any legacy saved state from older versions in localStorage
 function sanitizeStateObject(obj) {
   if (!obj || typeof obj !== "object") return;
-  if (!BIOME_PALETTES[obj.biome]) obj.biome = "gothic_balcony";
+  if (obj.biome === "beach") obj.biome = "lagoon";
+  if (!BIOME_PALETTES[obj.biome]) obj.biome = "royal";
   if (!obj.p1Shape) obj.p1Shape = "x";
   if (!obj.p2Shape) obj.p2Shape = "o";
   if (!Number.isInteger(obj.camModeIndex) || !CAMERA_MODES[obj.camModeIndex]) {
@@ -331,20 +367,34 @@ function sanitizeStateObject(obj) {
   if (!Array.isArray(obj.p2MarksQueue)) obj.p2MarksQueue = [];
 }
 
+function syncBiomeButtons() {
+  ["biome-select", "pause-biome-select"].forEach((id) => {
+    const container = $(id);
+    if (!container) return;
+    container.querySelectorAll(".seg-btn").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.biome === state.biome);
+    });
+  });
+}
+
 // ----------------------------------------------------------------------------
-// 3. THREE.JS SCENE INITIALIZATION (IMMEDIATE NON-BLACK CLEAR COLOR)
+// 3. THREE.JS SCENE INITIALIZATION
 // ----------------------------------------------------------------------------
 const canvas = $("game-canvas");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: true,
+  powerPreference: "high-performance"
+});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0xdcd3f2, 1);
+renderer.setClearColor(0xe5defc, 1);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xdcd3f2);
-scene.fog = new THREE.FogExp2(0xdcd3f2, 0.011);
+scene.background = new THREE.Color(0xe5defc);
+scene.fog = new THREE.FogExp2(0xe5defc, 0.011);
 
 const camera = new THREE.PerspectiveCamera(
   44,
@@ -382,14 +432,12 @@ worldGroup.add(
 );
 scene.add(worldGroup, cloudsGroup);
 
-// Safe group clearing helper
 function clearGroup(group) {
   while (group.children.length > 0) {
     group.remove(group.children[0]);
   }
 }
 
-// Camera Spherical Coordinates
 let camTheta = CAMERA_MODES[0].defaultTheta;
 let camPhi = CAMERA_MODES[0].defaultPhi;
 let camRadius = CAMERA_MODES[0].radius;
@@ -408,7 +456,6 @@ function createMatteMaterial(hexColor, opacity = 1) {
   });
 }
 
-// Continuous Unbroken Crooked Pencil Stroke Builder
 function createContinuousCrookedStroke(pointsArray, radius, material, closed = false) {
   const curve = new THREE.CatmullRomCurve3(pointsArray, closed);
   const segments = Math.max(36, pointsArray.length * 8);
@@ -485,7 +532,7 @@ function buildSketchPens() {
 }
 
 // ----------------------------------------------------------------------------
-// 4. VISIBLE BOARD BORDER FRAME & SCENIC 3D BACKGROUNDS
+// 4. VISIBLE BOARD BORDER FRAME & ALL 13 SCENIC 3D BACKGROUNDS
 // ----------------------------------------------------------------------------
 function buildBoardAndBiome() {
   clearGroup(boardGroup);
@@ -493,7 +540,7 @@ function buildBoardAndBiome() {
   clearGroup(biomePropsGroup);
   clearGroup(ambientParticlesGroup);
 
-  const palette = BIOME_PALETTES[state.biome] || BIOME_PALETTES.gothic_balcony;
+  const palette = BIOME_PALETTES[state.biome] || BIOME_PALETTES.royal;
   const N = state.gridSize || 3;
   const boardSpan = 7.6;
   const cellSize = boardSpan / N;
@@ -614,10 +661,263 @@ function buildBoardAndBiome() {
   buildScenicBiomeWorld(state.biome);
   buildSketchPens();
   rebuildAllMarks();
+  syncBiomeButtons();
 }
 
 function buildScenicBiomeWorld(biome) {
-  if (biome === "gothic_balcony") {
+  if (biome === "royal") {
+    // ROYAL SANCTUM — Marble Rotunda, Fluted Temple Columns, Golden Arches & Floating Crowns
+    const marbleFloor = new THREE.Mesh(
+      new THREE.CylinderGeometry(18, 19.5, 1.4, 36),
+      createMatteMaterial("#efeafd")
+    );
+    marbleFloor.position.y = -2.4;
+    biomePropsGroup.add(marbleFloor);
+
+    const velvetCarpet = new THREE.Mesh(
+      new THREE.CylinderGeometry(10.5, 10.5, 0.14, 32),
+      createMatteMaterial("#7251b5")
+    );
+    velvetCarpet.position.y = -1.68;
+    biomePropsGroup.add(velvetCarpet);
+
+    const goldRing = new THREE.Mesh(
+      new THREE.TorusGeometry(10.6, 0.16, 12, 48),
+      createMatteMaterial("#ffd166")
+    );
+    goldRing.rotation.x = Math.PI / 2;
+    goldRing.position.y = -1.62;
+    biomePropsGroup.add(goldRing);
+
+    const colMat = createMatteMaterial("#ffffff");
+    const goldMat = createMatteMaterial("#ffd166");
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2 + Math.PI / 8;
+      const r = 13.5;
+      const x = Math.cos(angle) * r;
+      const z = Math.sin(angle) * r;
+
+      const plinth = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.9, 1.8), goldMat);
+      plinth.position.set(x, -1.3, z);
+
+      const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.68, 7.2, 16), colMat);
+      pillar.position.set(x, 2.6, z);
+
+      const capital = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.55, 1.6), goldMat);
+      capital.position.set(x, 6.4, z);
+
+      const crownJewel = new THREE.Mesh(new THREE.OctahedronGeometry(0.68), goldMat);
+      crownJewel.position.set(x, 7.6, z);
+
+      biomePropsGroup.add(plinth, pillar, capital, crownJewel);
+    }
+
+    spawnAmbientParticles("#ffd166", 30, 14);
+  } else if (biome === "cyberpunk_drift") {
+    // CYBERPUNK DRIFT — Synthwave Grid Horizon, Floating Neon Drift Highways & Hologram Rings
+    const synthFloor = new THREE.Mesh(
+      new THREE.CylinderGeometry(28, 30, 1.2, 36),
+      createMatteMaterial("#181638")
+    );
+    synthFloor.position.y = -2.4;
+    biomePropsGroup.add(synthFloor);
+
+    // Dual Floating Neon Drift Tracks Flanking the Arena
+    const trackMatCyan = createMatteMaterial("#00f5d4");
+    const trackMatPink = createMatteMaterial("#ff3c88");
+
+    const outerDriftRing = new THREE.Mesh(
+      new THREE.TorusGeometry(13.5, 0.35, 12, 64),
+      trackMatCyan
+    );
+    outerDriftRing.rotation.x = Math.PI / 2 + 0.14;
+    outerDriftRing.position.y = -0.3;
+    biomePropsGroup.add(outerDriftRing);
+
+    const innerDriftRing = new THREE.Mesh(
+      new THREE.TorusGeometry(11.0, 0.25, 12, 64),
+      trackMatPink
+    );
+    innerDriftRing.rotation.x = Math.PI / 2 - 0.14;
+    innerDriftRing.position.y = 0.6;
+    biomePropsGroup.add(innerDriftRing);
+
+    // Floating Hologram Drift Portals & Monoliths
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const dist = 16.5;
+      const portal = new THREE.Mesh(
+        new THREE.TorusGeometry(1.8, 0.14, 10, 28),
+        i % 2 === 0 ? trackMatPink : trackMatCyan
+      );
+      portal.position.set(Math.cos(a) * dist, 1.8 + (i % 2) * 1.4, Math.sin(a) * dist);
+      portal.lookAt(0, 1.5, 0);
+      biomePropsGroup.add(portal);
+    }
+
+    spawnAmbientParticles("#00f5d4", 34, 15);
+  } else if (biome === "angelic") {
+    // ANGELIC CLOUD — Celestial Cloud Sanctuary, Golden Halo Rings & Temple Gates
+    const sanctuaryBase = new THREE.Mesh(
+      new THREE.CylinderGeometry(16, 12, 1.8, 32),
+      createMatteMaterial("#ffffff")
+    );
+    sanctuaryBase.position.y = -2.4;
+    biomePropsGroup.add(sanctuaryBase);
+
+    const goldMat = createMatteMaterial("#ffd166");
+    const pearlMat = createMatteMaterial("#f8f9fa");
+
+    // Concentric Celestial Golden Halos
+    const halo1 = new THREE.Mesh(new THREE.TorusGeometry(9.2, 0.16, 14, 64), goldMat);
+    halo1.rotation.x = Math.PI / 2;
+    halo1.position.y = 2.8;
+
+    const halo2 = new THREE.Mesh(new THREE.TorusGeometry(12.4, 0.14, 14, 64), goldMat);
+    halo2.rotation.x = Math.PI / 2 + 0.18;
+    halo2.position.y = 1.2;
+    biomePropsGroup.add(halo1, halo2);
+
+    // Perimeter Cloud Pillows & Celestial Spires
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const r = 12.8;
+      const puff = new THREE.Mesh(new THREE.SphereGeometry(2.2, 16, 16), pearlMat);
+      puff.scale.y = 0.6;
+      puff.position.set(Math.cos(a) * r, -1.5, Math.sin(a) * r);
+      biomePropsGroup.add(puff);
+
+      if (i % 2 === 0) {
+        const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.42, 6.2, 12), pearlMat);
+        spire.position.set(Math.cos(a) * 14.5, 1.4, Math.sin(a) * 14.5);
+        const orb = new THREE.Mesh(new THREE.SphereGeometry(0.55, 14, 14), goldMat);
+        orb.position.set(Math.cos(a) * 14.5, 4.9, Math.sin(a) * 14.5);
+        biomePropsGroup.add(spire, orb);
+      }
+    }
+
+    spawnAmbientParticles("#fff3b0", 32, 14);
+  } else if (biome === "lagoon") {
+    // PASTEL LAGOON — Tropical Turquoise Water, Sandy Atoll Island, Palm Trees & Parasols
+    const ocean = new THREE.Mesh(
+      new THREE.CylinderGeometry(30, 30, 0.9, 36),
+      createMatteMaterial("#64dfdf", 0.85)
+    );
+    ocean.position.y = -2.45;
+    biomePropsGroup.add(ocean);
+
+    const sandIsland = new THREE.Mesh(
+      new THREE.CylinderGeometry(11.5, 13.8, 1.2, 32),
+      createMatteMaterial("#fae1dd")
+    );
+    sandIsland.position.y = -2.1;
+    biomePropsGroup.add(sandIsland);
+
+    // Tropical Palm Trees & Pastel Beach Parasols around Atoll
+    const trunkMat = createMatteMaterial("#b08968");
+    const leafMat = createMatteMaterial("#52b788");
+    const parasolMat = createMatteMaterial("#ff8fa3");
+
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 + 0.3;
+      const r = 9.8;
+      const x = Math.cos(a) * r;
+      const z = Math.sin(a) * r;
+
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.34, 4.2, 10), trunkMat);
+      trunk.position.set(x, 0.3, z);
+
+      for (let f = 0; f < 4; f++) {
+        const frond = new THREE.Mesh(new THREE.ConeGeometry(0.85, 2.4, 6), leafMat);
+        const fa = (f / 4) * Math.PI * 2;
+        frond.position.set(x + Math.cos(fa) * 0.9, 2.3, z + Math.sin(fa) * 0.9);
+        frond.rotation.z = Math.PI / 2.6;
+        frond.rotation.y = -fa;
+        biomePropsGroup.add(frond);
+      }
+      biomePropsGroup.add(trunk);
+
+      if (i % 2 === 0) {
+        const px = Math.cos(a + 0.45) * 8.6;
+        const pz = Math.sin(a + 0.45) * 8.6;
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.6, 8), trunkMat);
+        pole.position.set(px, -0.4, pz);
+        const canopy = new THREE.Mesh(new THREE.ConeGeometry(1.65, 0.9, 12), parasolMat);
+        canopy.position.set(px, 1.0, pz);
+        biomePropsGroup.add(pole, canopy);
+      }
+    }
+
+    spawnAmbientParticles("#caf0f8", 28, 13);
+  } else if (biome === "cafe") {
+    // LO-FI CAFE — Warm Walnut Tabletop, Steaming Coffee Mug, Vinyl Turntable & Warm Lamps
+    const cafeTable = new THREE.Mesh(
+      new THREE.CylinderGeometry(18.5, 19.5, 1.5, 36),
+      createMatteMaterial("#9c6644")
+    );
+    cafeTable.position.y = -2.4;
+    biomePropsGroup.add(cafeTable);
+
+    // Coaster Mat under the Board
+    const coaster = new THREE.Mesh(
+      new THREE.CylinderGeometry(7.2, 7.2, 0.12, 32),
+      createMatteMaterial("#ede0d4")
+    );
+    coaster.position.y = -1.62;
+    biomePropsGroup.add(coaster);
+
+    // Oversized Ceramic Coffee Mug & saucer
+    const mugGroup = new THREE.Group();
+    const mugMat = createMatteMaterial("#f4a261");
+    const coffeeMat = createMatteMaterial("#3d2314");
+
+    const saucer = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.4, 2.0, 0.25, 24),
+      createMatteMaterial("#fff8f0")
+    );
+    saucer.position.y = -1.5;
+
+    const cup = new THREE.Mesh(new THREE.CylinderGeometry(1.55, 1.35, 2.8, 24), mugMat);
+    cup.position.y = -0.1;
+
+    const liquid = new THREE.Mesh(new THREE.CylinderGeometry(1.42, 1.42, 0.1, 20), coffeeMat);
+    liquid.position.y = 1.28;
+
+    const handle = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.2, 10, 20), mugMat);
+    handle.position.set(1.55, -0.1, 0);
+
+    mugGroup.add(saucer, cup, liquid, handle);
+    mugGroup.position.set(-8.6, 0, -6.4);
+    biomePropsGroup.add(mugGroup);
+
+    // Vinyl Turntable Player & Book Stack on the opposite side
+    const platterBase = new THREE.Mesh(
+      new THREE.BoxGeometry(4.2, 0.55, 3.4),
+      createMatteMaterial("#d4a373")
+    );
+    platterBase.position.set(8.6, -1.35, -5.8);
+    const vinylDisc = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.35, 1.35, 0.12, 24),
+      createMatteMaterial("#22222b")
+    );
+    vinylDisc.position.set(8.3, -1.02, -5.8);
+    const vinylLabel = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.45, 0.45, 0.14, 16),
+      createMatteMaterial("#ff758f")
+    );
+    vinylLabel.position.set(8.3, -1.01, -5.8);
+    biomePropsGroup.add(platterBase, vinylDisc, vinylLabel);
+
+    // Warm Lo-Fi Overhead String Lamps
+    const bulbMat = createMatteMaterial("#ffd166");
+    for (let i = -3; i <= 3; i++) {
+      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 12), bulbMat);
+      bulb.position.set(i * 3.4, 5.8 - Math.cos(i * 0.45) * 0.8, -11.5);
+      biomePropsGroup.add(bulb);
+    }
+
+    spawnAmbientParticles("#fff1d0", 26, 12);
+  } else if (biome === "gothic_balcony") {
     const balconyDeck = new THREE.Mesh(
       new THREE.BoxGeometry(17.5, 1.4, 15.5),
       createMatteMaterial("#463f57")
@@ -2046,7 +2346,7 @@ function animate(now) {
   }
 
   const daylightFactor = Math.sin(state.skyTime * Math.PI * 2) * 0.5 + 0.5;
-  const palette = BIOME_PALETTES[state.biome] || BIOME_PALETTES.gothic_balcony;
+  const palette = BIOME_PALETTES[state.biome] || BIOME_PALETTES.royal;
   const dayCol = new THREE.Color(palette.daySky);
   const nightCol = new THREE.Color(palette.nightSky);
   const currentSky = nightCol.clone().lerp(dayCol, daylightFactor);
@@ -2112,7 +2412,7 @@ function animate(now) {
   renderer.render(scene, camera);
 }
 
-// 1. Build 3D World & Start Render Loop FIRST so Graphics Never Go Black
+// 1. Build 3D World & Start Render Loop Immediately
 buildClouds();
 initBoardState(true);
 requestAnimationFrame(animate);
